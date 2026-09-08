@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "athena-sast"
+version = "1.0.0"
+description = "Athena SAST CLI — backbone for CI plugins; client of the Athena engine plus local OWASP CI/CD gate"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Athena" }]
+keywords = ["sast", "cicd", "owasp", "sarif"]
+
+[project.scripts]
+athena = "pkg.cli:main"
+
+[tool.setuptools]
+py-modules = ["athena"]
+packages = ["pkg", "pkg.rules"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"

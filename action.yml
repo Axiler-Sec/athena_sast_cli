@@ -1,0 +1,85 @@
+name: 'Athena SAST'
+description: 'OWASP CI/CD-aligned SAST via the Athena CLI (engine APIs + local pipeline gate)'
+author: Athena
+
+# CICD-SEC-5: least privilege. Callers may raise security-events for SARIF upload.
+permissions:
+  contents: read
+  security-events: write
+
+inputs:
+  target:
+    description: 'Local checkout path for the pipeline gate'
+    default: '.'
+  repo:
+    description: 'Git repository URL (engine scan). Empty = local gate only.'
+    default: ''
+  branch:
+    description: 'Branch to scan'
+    default: ''
+  fail-on:
+    description: 'Severity gate (critical|high|medium|low)'
+    default: 'high'
+  modes:
+    description: 'Comma-separated modes'
+    default: 'code-review,secrets,iac,sca,pipeline'
+  sarif-output:
+    description: 'SARIF output path (CLI-normalized, not engine SARIF)'
+    default: 'athena-results.sarif'
+  json-output:
+    description: 'JSON output path'
+    default: 'athena-results.json'
+
+outputs:
+  sarif-file:
+    description: 'Path to CLI-normalized SARIF'
+    value: ${{ inputs.sarif-output }}
+  json-file:
+    description: 'Path to Athena JSON'
+    value: ${{ inputs.json-output }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install Athena CLI
+      shell: bash
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install "${GITHUB_ACTION_PATH}"
+
+    - name: Run Athena scan
+      id: scan
+      shell: bash
+      env:
+        # CICD-SEC-6: secrets from the caller workflow env, never hardcoded
+        ATHENA_API_URL: ${{ env.ATHENA_API_URL }}
+        ATHENA_API_KEY: ${{ env.ATHENA_API_KEY }}
+        ATHENA_REPO_TOKEN: ${{ env.ATHENA_REPO_TOKEN }}
+      run: |
+        set +e
+        EXTRA=()
+        if [ -n "${{ inputs.repo }}" ]; then
+          EXTRA+=(--repo "${{ inputs.repo }}")
+        fi
+        if [ -n "${{ inputs.branch }}" ]; then
+          EXTRA+=(--branch "${{ inputs.branch }}")
+        fi
+        athena scan \
+          --target "${{ inputs.target }}" \
+          --modes "${{ inputs.modes }}" \
+          --format sarif \
+          --output "${{ inputs.sarif-output }}" \
+          --json-output "${{ inputs.json-output }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          --quiet \
+          "${EXTRA[@]}"
+        SCAN_EXIT=$?
+        exit $SCAN_EXIT
+
+    # CICD-SEC-10: always upload SARIF. CICD-SEC-8: pin to commit SHA, not @v3.
+    - name: Upload SARIF (GitHub Code Scanning)
+      if: always()
+      uses: github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474
+      with:
+        sarif_file: ${{ inputs.sarif-output }}
+        category: 'athena-sast'

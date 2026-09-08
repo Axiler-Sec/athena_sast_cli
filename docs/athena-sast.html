@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Athena SAST — Product documentation</title>
+  <style>
+    :root {
+      --nav: #0f2744;
+      --nav-2: #16365d;
+      --accent: #2b8aed;
+      --ink: #1a2332;
+      --muted: #5b6775;
+      --line: #d9e1ea;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --ok: #0d7a4d;
+      --warn: #b45309;
+      --bad: #b42318;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Calibri, system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55;
+    }
+    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+    nav {
+      background: var(--nav);
+      color: #e8eef6;
+      padding: 1.25rem 0 3rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+    }
+    nav .brand {
+      padding: 0 1.25rem 1rem;
+      border-bottom: 1px solid #2a4a73;
+      margin-bottom: 0.75rem;
+    }
+    nav .brand h1 { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: .02em; }
+    nav .brand p { margin: .35rem 0 0; font-size: .75rem; color: #9db4d0; }
+    nav a {
+      display: block;
+      color: #c5d4e8;
+      text-decoration: none;
+      padding: .38rem 1.25rem;
+      font-size: .86rem;
+    }
+    nav a:hover, nav a:focus { background: var(--nav-2); color: #fff; }
+    nav a.sub { padding-left: 1.85rem; font-size: .8rem; color: #9db4d0; }
+    main { padding: 2rem 2.5rem 4rem; max-width: 920px; }
+    .hero {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 2rem;
+    }
+    .hero h2 { margin: 0 0 .5rem; font-size: 1.85rem; }
+    .meta { color: var(--muted); font-size: .9rem; }
+    h2 { font-size: 1.45rem; margin: 2.2rem 0 .7rem; padding-top: .4rem; border-top: 1px solid var(--line); }
+    h2:first-of-type { border-top: 0; }
+    h3 { font-size: 1.12rem; margin: 1.5rem 0 .5rem; }
+    p { margin: .6rem 0; }
+    ul, ol { margin: .4rem 0 1rem; padding-left: 1.3rem; }
+    li { margin: .25rem 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      font-size: .9rem;
+      margin: .75rem 0 1.25rem;
+    }
+    th, td { border: 1px solid var(--line); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+    th { background: #eaf0f7; }
+    code, kbd {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: .86em;
+      background: #eef2f7;
+      padding: .08em .35em;
+      border-radius: 3px;
+    }
+    pre {
+      background: #0f2744;
+      color: #e8eef6;
+      padding: 1rem 1.1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: .82rem;
+      line-height: 1.45;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    .note, .warn, .ok {
+      border-left: 4px solid var(--accent);
+      background: #e8f2fc;
+      padding: .75rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+    }
+    .warn { border-color: var(--warn); background: #fff7ed; }
+    .ok { border-color: var(--ok); background: #ecfdf5; }
+    .cmd { display: inline-block; min-width: 11rem; font-weight: 600; }
+    footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; }
+    @media print {
+      nav { display: none; }
+      .layout { display: block; }
+      main { max-width: none; padding: 0; }
+      pre { white-space: pre-wrap; }
+      h2 { break-after: avoid; }
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      nav { position: relative; height: auto; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+<nav aria-label="Documentation">
+  <div class="brand">
+    <h1>Athena SAST</h1>
+    <p>Documentation · CLI v1.0.0</p>
+  </div>
+  <a href="#overview">Overview</a>
+  <a href="#architecture">System architecture</a>
+  <a href="#honesty">Honesty and claims</a>
+  <a href="#install">Install the CLI</a>
+  <a href="#config">Configuration and authentication</a>
+  <a href="#quickstart">Quick start</a>
+  <a href="#commands">CLI commands</a>
+  <a href="#scan">Running scans</a>
+  <a href="#exits">Exit codes and policy gate</a>
+  <a href="#outputs">Results, SARIF, and JSON</a>
+  <a href="#engine">Engine endpoints</a>
+  <a href="#owasp">OWASP CI/CD coverage</a>
+  <a href="#plugins">CI plugins (wrappers)</a>
+  <a class="sub" href="#github">GitHub Actions</a>
+  <a class="sub" href="#jenkins">Jenkins</a>
+  <a class="sub" href="#azure">Azure DevOps</a>
+  <a href="#troubleshoot">Troubleshooting</a>
+  <a href="#roles">Roles (admin vs developer)</a>
+</nav>
+<main>
+  <div class="hero">
+    <h2>Athena SAST</h2>
+    <p class="meta">Product documentation for the Athena SAST CLI, local OWASP CI/CD gate, engine client, and CI wrappers (GitHub Actions, Jenkins, Azure DevOps). Version 1.0.0 · Apache-2.0.</p>
+    <p>This page is the operator manual in one place. Step-by-step CI checkpoints (G0–G4, J0–J4, A0–A4) also live in <code>docs/CI.md</code>.</p>
+    <p class="meta">Open this file in a browser. To get Word: File → Save As → Word Document, or print to PDF.</p>
+  </div>
+
+  <h2 id="overview">Overview</h2>
+  <p>Athena SAST finds security issues in source, IaC, dependencies, containers, secrets, and <strong>CI/CD pipeline YAML</strong>. The <strong>CLI is the backbone of plugins</strong> (same model as commercial SAST CLIs): Jenkins, GitHub Actions, and Azure DevOps install the <code>athena</code> binary and execute it. They contain <strong>zero scan logic</strong>.</p>
+  <p>Two scan depths:</p>
+  <ul>
+    <li><strong>Local OWASP CI/CD gate</strong> — regex rules ATH001–ATH054 on disk. No API key. Tagged <code>source: local_owasp</code>. Covers the OWASP CI/CD Security Cheat Sheet (CICD-SEC-1 through CICD-SEC-10).</li>
+    <li><strong>Engine client</strong> — HTTP POST to Athena FastAPI engine routes (OpenGrep, Trivy, KICS, Syft, and related product agents). Requires <code>ATHENA_API_URL</code> and <code>ATHENA_API_KEY</code>. Tagged <code>source: engine</code>.</li>
+  </ul>
+  <p>The web UI is a <strong>sibling</strong> consumer of the same FastAPI engine. It does not call this CLI.</p>
+
+  <h2 id="architecture">System architecture</h2>
+  <pre><code>You (laptop or CI)
+   →  Athena CLI  (athena / python3 athena.py)
+         →  local OWASP gate (files on disk)
+         →  FastAPI engine  (ATHENA_API_URL)
+                →  OpenGrep, Trivy, KICS, Syft, …
+
+GitHub / Jenkins / Azure  →  install CLI  →  exec athena scan
+Web UI                    →  engine HTTP  (does not exec the CLI)</code></pre>
+  <div class="warn">
+    <strong>Localhost trap.</strong> Cloud CI (GitHub-hosted <code>ubuntu-latest</code>, Microsoft-hosted Azure agents) cannot call <code>http://127.0.0.1:8012</code> on your laptop. First pipelines must be local-gate only. Engine-from-CI needs a URL the <em>agent</em> can reach (deployed engine, or a self-hosted runner on the same network as the API).
+  </div>
+
+  <h2 id="honesty">Honesty and claims</h2>
+  <ul>
+    <li>Product agents do <strong>not</strong> return SARIF. The CLI builds SARIF 2.1.0 and labels it <code>sarif_source: cli_normalized</code>. Never send <code>include_sarif: true</code> to agents.</li>
+    <li><code>athena compliance</code> prints <strong>mapped controls</strong> (heuristic). It is not a SOC 2 / PCI certification.</li>
+    <li>Local “compliant” copy means the regex gate found nothing — not a legal attestation.</li>
+    <li>CVE / CWE / CVSS appear on engine findings when the engine sends them, and are omitted when it does not.</li>
+  </ul>
+
+  <h2 id="install">Install the CLI</h2>
+  <p>Requirements: Python 3.10+.</p>
+  <pre><code>cd athena-sast-cli
+python3 athena.py version
+# Athena SAST v1.0.0
+
+python3 -m pip install .     # provides the `athena` console script
+athena version
+
+python3 -m unittest discover -s tests</code></pre>
+  <p>Package name: <code>athena-sast</code> 1.0.0. Entry point: <code>athena = pkg.cli:main</code>.</p>
+
+  <h2 id="config">Configuration and authentication</h2>
+  <h3>Precedence</h3>
+  <p><strong>CLI flag &gt; environment variable &gt; <code>athena.yaml</code> &gt; built-in default.</strong> The engine and UI do not read <code>athena.yaml</code>.</p>
+  <h3>Environment (auth is env-only)</h3>
+  <table>
+    <tr><th>Variable</th><th>Purpose</th></tr>
+    <tr><td><code>ATHENA_API_URL</code></td><td>Engine base URL, no trailing slash. Example: <code>http://127.0.0.1:8012</code> (Docker maps host 8012 → container 8000).</td></tr>
+    <tr><td><code>ATHENA_API_KEY</code></td><td>Same value as FastAPI <code>API_KEY</code>. Sent as header <code>X-API-Key</code>. Never a CLI flag.</td></tr>
+    <tr><td><code>ATHENA_REPO_TOKEN</code></td><td>Git token for private clones. Public repos often omit this.</td></tr>
+    <tr><td><code>ATHENA_REGISTRY_USER</code> / <code>ATHENA_REGISTRY_PASSWORD</code></td><td>Private container registries.</td></tr>
+    <tr><td><code>ATHENA_HTTP_TIMEOUT</code></td><td>Seconds. Default <strong>600</strong>.</td></tr>
+  </table>
+  <div class="note">There is no <code>--api-key</code>. Flags would land in shell history (CICD-SEC-6). Composite GitHub Actions cannot read <code>secrets.*</code>; the <em>caller</em> workflow must set <code>env:</code>.</div>
+  <h3>Default <code>athena.yaml</code></h3>
+  <pre><code>fail_on: high
+format: sarif
+output: athena-results.sarif
+modes:
+  - code-review
+  - secrets
+  - iac
+  - sca
+  - pipeline
+exclude:
+  - "tests/**"
+  - "**/*.test.py"
+  - "vendor/**"</code></pre>
+  <p>If you pass <code>--format</code> without <code>--output</code>, results print to stdout (so tests and interactive use are not swallowed by yaml <code>output:</code>). Prep commands (<code>repo verify</code>, <code>repo branches</code>) write a file only when you pass <code>--output</code> on the CLI.</p>
+
+  <h2 id="quickstart">Quick start</h2>
+  <h3>Local gate (no engine)</h3>
+  <pre><code>python3 athena.py owasp
+python3 athena.py scan tests/targets/bad_pipeline.yml --format table
+echo $?    # 1 = findings at/above fail-on
+
+python3 athena.py scan tests/targets/clean_app.py --fail-on low --format table
+echo $?    # 0 = clean</code></pre>
+  <h3>Engine (laptop)</h3>
+  <pre><code>export ATHENA_API_URL="http://127.0.0.1:8012"
+export ATHENA_API_KEY="(same as FastAPI API_KEY)"
+
+python3 athena.py repo verify \
+  --repo https://github.com/octocat/Hello-World.git --branch master
+
+python3 athena.py scan \
+  --repo https://github.com/ORG/APP.git --branch main \
+  --target . \
+  --modes code-review,secrets,iac,sca,pipeline \
+  --format sarif --output athena-results.sarif \
+  --json-output athena-results.json \
+  --fail-on high --quiet</code></pre>
+  <p>Orchestrator order: repo verify → engine agents sequentially → local pipeline gate on <code>--target</code> → merge → write files → exit 0 or 1. Post-scan commands (<code>pr create</code>, <code>sbom</code>, <code>compliance</code>) are never auto-run from <code>athena scan</code>.</p>
+
+  <h2 id="commands">CLI commands</h2>
+  <table>
+    <tr><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>athena version</code></td><td>Print <code>Athena SAST v1.0.0</code>.</td></tr>
+    <tr><td><code>athena rules</code></td><td>List local OWASP rules.</td></tr>
+    <tr><td><code>athena owasp</code></td><td>CICD-SEC-1…10 coverage map.</td></tr>
+    <tr><td><code>athena scan [path]</code></td><td>Local gate, or orchestrated CI scan if <code>--repo</code> is set. <code>--local</code> forces disk-only.</td></tr>
+    <tr><td><code>athena repo verify</code></td><td>POST <code>/scan/verify-repository-contents</code>.</td></tr>
+    <tr><td><code>athena repo branches</code></td><td>POST <code>/scan/list-repository-branches</code>.</td></tr>
+    <tr><td><code>athena image verify</code></td><td>POST <code>/scan/verify-container-image</code>.</td></tr>
+    <tr><td><code>athena image tags</code></td><td>POST <code>/scan/list-container-image-tags</code>.</td></tr>
+    <tr><td><code>athena code-review</code></td><td>POST <code>/scan/code-review-agent</code>.</td></tr>
+    <tr><td><code>athena code-review upload ZIP</code></td><td>POST <code>/scan/upload-code-review</code> (multipart).</td></tr>
+    <tr><td><code>athena secrets</code></td><td>POST <code>/scan/secrets-agent</code>.</td></tr>
+    <tr><td><code>athena secrets upload ZIP</code></td><td>POST <code>/scan/upload-secrets</code> (multipart; filesystem secrets only).</td></tr>
+    <tr><td><code>athena iac</code></td><td>POST <code>/scan/iac-agent</code>.</td></tr>
+    <tr><td><code>athena iac upload ZIP</code></td><td>POST <code>/scan/upload-iac</code> (multipart).</td></tr>
+    <tr><td><code>athena sca</code></td><td>POST <code>/scan/sca-agent</code>.</td></tr>
+    <tr><td><code>athena sca upload ZIP</code></td><td>POST <code>/scan/upload-sca</code> (multipart; <code>artifactType=zip-archive</code>).</td></tr>
+    <tr><td><code>athena container</code></td><td>POST <code>/scan/container-agent</code>.</td></tr>
+    <tr><td><code>athena container review</code></td><td>POST <code>/scan/container-code-review</code> (v2 body + compiled Go; not a second wrap of container-image-v2).</td></tr>
+    <tr><td><code>athena apk</code></td><td>POST <code>/scan/apk-scan</code>.</td></tr>
+    <tr><td><code>athena sbom</code></td><td>POST <code>/scan/composition-analysis/sbom</code> (<code>--format cyclonedx|spdx</code> is SBOM format, not CLI table/json).</td></tr>
+    <tr><td><code>athena pr create</code></td><td>POST <code>/scan/create-code-review-pr</code>. Needs <code>ATHENA_REPO_TOKEN</code>.</td></tr>
+    <tr><td><code>athena compliance --from FILE</code></td><td>POST <code>/scan/compliance-mapper</code>.</td></tr>
+  </table>
+  <p>Shared flags on scan-style commands: <code>--format table|json|sarif|junit</code>, <code>--output</code>, <code>--json-output</code>, <code>--fail-on critical|high|medium|low</code>, <code>--exclude</code>, <code>--quiet</code>, <code>--raw-dir</code> (default <code>athena-results/raw/</code>; raw engine JSON is saved <em>before</em> parse).</p>
+  <p>401/403 → “auth failed”, exit 2. 5xx → retry once, then exit 2. Engine POSTs are synchronous today (200 + JSON). The client is poll-ready only if a future 202 body includes <code>status_url</code>; the CLI does not invent GET <code>/status</code>.</p>
+
+  <h2 id="scan">Running scans</h2>
+  <p><code>athena scan</code> without <code>--repo</code> walks <code>--target</code> (or the positional path) with local rules. With <code>--repo</code> it verifies the repository, then runs each mode in <code>--modes</code>. Mode <code>pipeline</code> is always local. Mode <code>container</code> needs <code>--image registry/repository:tag</code>.</p>
+  <p>Default CI command (what plugins exec when engine env is set):</p>
+  <pre><code>athena scan --repo URL --branch BRANCH --target . \
+  --modes code-review,secrets,iac,sca,pipeline \
+  --format sarif --output athena-results.sarif \
+  --json-output athena-results.json --fail-on high --quiet</code></pre>
+  <p>First wrapper jobs omit <code>--repo</code> and use <code>--modes pipeline</code> so they work without an API key.</p>
+
+  <h2 id="exits">Exit codes and policy gate</h2>
+  <p>Frozen public contract. Never add a fourth code.</p>
+  <table>
+    <tr><th>Code</th><th>Meaning</th><th>CI</th></tr>
+    <tr><td><strong>0</strong></td><td>Scan finished. Nothing at or above <code>--fail-on</code>.</td><td>Green</td></tr>
+    <tr><td><strong>1</strong></td><td>Scan finished. Findings at or above <code>--fail-on</code>.</td><td>Failed policy (tool worked)</td></tr>
+    <tr><td><strong>2</strong></td><td>Could not run (bad path, missing env, auth, engine down).</td><td>Broken tool — not “no vulns”</td></tr>
+  </table>
+  <p>Default <code>--fail-on high</code>: Critical and High fail the build; Medium and Low do not.</p>
+
+  <h2 id="outputs">Results, SARIF, and JSON</h2>
+  <ul>
+    <li><strong>table</strong> — human findings list.</li>
+    <li><strong>json</strong> — Athena schema <code>schema_version: 1.0</code>, tool <code>athena</code>, <code>summary.by_source</code>, <code>summary.by_owasp_risk</code>.</li>
+    <li><strong>sarif</strong> — SARIF 2.1.0, <code>runs[].properties.sarif_source = cli_normalized</code>.</li>
+    <li><strong>junit</strong> — for Jenkins Test Result.</li>
+  </ul>
+  <p>Always write SARIF to a <strong>file</strong> in CI (<code>--output</code>). GitHub Code Scanning, Azure artifacts, and GitLab ingest files, not stdout.</p>
+
+  <h2 id="engine">Engine endpoints</h2>
+  <p>The CLI wraps these routes. Do not add other <code>/scan/*</code> paths.</p>
+  <table>
+    <tr><th>CLI</th><th>POST path</th></tr>
+    <tr><td>repo verify</td><td><code>/scan/verify-repository-contents</code></td></tr>
+    <tr><td>repo branches</td><td><code>/scan/list-repository-branches</code></td></tr>
+    <tr><td>image verify</td><td><code>/scan/verify-container-image</code></td></tr>
+    <tr><td>image tags</td><td><code>/scan/list-container-image-tags</code></td></tr>
+    <tr><td>code-review</td><td><code>/scan/code-review-agent</code></td></tr>
+    <tr><td>code-review upload</td><td><code>/scan/upload-code-review</code></td></tr>
+    <tr><td>secrets</td><td><code>/scan/secrets-agent</code></td></tr>
+    <tr><td>secrets upload</td><td><code>/scan/upload-secrets</code></td></tr>
+    <tr><td>iac</td><td><code>/scan/iac-agent</code></td></tr>
+    <tr><td>iac upload</td><td><code>/scan/upload-iac</code></td></tr>
+    <tr><td>sca</td><td><code>/scan/sca-agent</code></td></tr>
+    <tr><td>sca upload</td><td><code>/scan/upload-sca</code></td></tr>
+    <tr><td>container</td><td><code>/scan/container-agent</code></td></tr>
+    <tr><td>container review</td><td><code>/scan/container-code-review</code></td></tr>
+    <tr><td>apk</td><td><code>/scan/apk-scan</code></td></tr>
+    <tr><td>pr create</td><td><code>/scan/create-code-review-pr</code></td></tr>
+    <tr><td>sbom</td><td><code>/scan/composition-analysis/sbom</code></td></tr>
+    <tr><td>compliance</td><td><code>/scan/compliance-mapper</code></td></tr>
+  </table>
+  <p>Local Docker Compose publishes the API at <strong>http://127.0.0.1:8012</strong> (container port 8000). Confirm with <code>GET /health</code>.</p>
+
+  <h2 id="owasp">OWASP CI/CD coverage (local rules)</h2>
+  <p>Reference: OWASP CI/CD Security Cheat Sheet. Live catalog: <code>athena owasp</code> and <code>athena rules</code>. ATH043B emits as ATH043.</p>
+  <table>
+    <tr><th>Risk</th><th>Name</th><th>Local rules</th></tr>
+    <tr><td>CICD-SEC-1</td><td>Insufficient Flow Control Mechanisms</td><td>ATH044, ATH049</td></tr>
+    <tr><td>CICD-SEC-2</td><td>Inadequate Identity and Access Management</td><td>ATH039, ATH043, ATH048</td></tr>
+    <tr><td>CICD-SEC-3</td><td>Dependency Chain Abuse</td><td>ATH047, ATH051, ATH054</td></tr>
+    <tr><td>CICD-SEC-4</td><td>Poisoned Pipeline Execution (PPE)</td><td>ATH010–ATH019, ATH042</td></tr>
+    <tr><td>CICD-SEC-5</td><td>Insufficient PBAC</td><td>ATH043</td></tr>
+    <tr><td>CICD-SEC-6</td><td>Insufficient Credential Hygiene</td><td>ATH001–ATH009, ATH040</td></tr>
+    <tr><td>CICD-SEC-7</td><td>Insecure System Configuration</td><td>ATH020–ATH038, ATH045</td></tr>
+    <tr><td>CICD-SEC-8</td><td>Ungoverned Third-Party Services</td><td>ATH041</td></tr>
+    <tr><td>CICD-SEC-9</td><td>Improper Artifact Integrity</td><td>ATH050–ATH053</td></tr>
+    <tr><td>CICD-SEC-10</td><td>Insufficient Logging and Visibility</td><td>ATH046</td></tr>
+  </table>
+  <p>Examples: ATH040 secret in pipeline <code>env:</code>; ATH041 Action pinned to a moving tag; ATH047 unpinned <code>pip install</code>.</p>
+
+  <h2 id="plugins">CI plugins (wrappers)</h2>
+  <p>A wrapper only: (1) installs the CLI, (2) execs <code>athena scan</code>, (3) always publishes SARIF/JSON (and JUnit on Jenkins). The gate is the CLI exit code. Do not put regex or API calls in YAML.</p>
+  <p><strong>Shared process:</strong> prove the command on a laptop → first pipeline = local gate (no secrets, no <code>--repo</code>) → then platform secrets and full modes when the agent can reach the engine. Checkpoints are in <code>docs/CI.md</code>.</p>
+
+  <h3 id="github">GitHub Actions</h3>
+  <p>Composite action: repo-root <code>action.yml</code>. Caller (local gate): <code>.github/workflows/athena.yml</code> with <code>uses: ./</code>, <code>modes: pipeline</code>, no secrets. Pin third-party actions to a commit SHA. Code Scanning upload uses <code>github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474</code>.</p>
+  <p>Engine job: caller sets <code>env.ATHENA_API_URL</code> / <code>ATHENA_API_KEY</code> from <code>secrets</code>, and passes <code>repo</code> / <code>branch</code>. If this CLI is a separate repo, pin <code>uses: ORG/athena-sast-cli@COMMIT_SHA</code> — never <code>@main</code>.</p>
+
+  <h3 id="jenkins">Jenkins</h3>
+  <p>Root <code>Jenkinsfile</code> (copy in <code>plugins/Jenkinsfile</code>). First job does <strong>not</strong> call <code>credentials()</code> (missing IDs fail before scan). Agent needs Python 3, pip, and this folder as workspace (<code>pip install .</code>). Artifacts always archived. JUnit from a second local scan; the SARIF scan exit still gates the build.</p>
+  <p>Engine (J4): bind secret text IDs <code>athena-api-url</code>, <code>athena-api-key</code>, <code>athena-repo-token</code> onto env vars, set <code>REPO_URL</code>. Both <code>ATHENA_API_URL</code> and <code>REPO_URL</code> switch modes to the full engine set.</p>
+
+  <h3 id="azure">Azure DevOps</h3>
+  <p>Root <code>azure-pipelines.yml</code> (copy in <code>plugins/azure-pipelines.yml</code>). Microsoft-hosted <code>ubuntu-latest</code>. Do <strong>not</strong> set <code>continueOnError</code> on the scan step. Artifacts publish with <code>condition: always()</code>. <code>--repo</code> is added only when <code>ATHENA_API_URL</code> starts with <code>http</code> (unexpanded <code>$(ATHENA_API_URL)</code> is ignored).</p>
+  <p>Workspace root must be this CLI. If Azure builds the parent <code>athena_sast</code> folder, change install to <code>python3 -m pip install ./athena-sast-cli</code>.</p>
+  <p>A4: Library variables <code>ATHENA_API_URL</code> (no padlock), <code>ATHENA_API_KEY</code> (padlock), optional token. URL must be reachable from the hosted VM — not localhost.</p>
+
+  <h2 id="troubleshoot">Troubleshooting</h2>
+  <table>
+    <tr><th>You see</th><th>Meaning</th><th>What to do</th></tr>
+    <tr><td><code>ATHENA_API_URL is not set</code></td><td>Env missing on an engine command</td><td>Export locally, or add CI secret / Library variable</td></tr>
+    <tr><td><code>ATHENA_API_KEY is not set</code></td><td>URL set, key missing</td><td>Same value as FastAPI <code>API_KEY</code></td></tr>
+    <tr><td><code>auth failed</code></td><td>401/403</td><td>Key mismatch, extra spaces/quotes</td></tr>
+    <tr><td><code>engine unreachable</code></td><td>Network</td><td><code>curl</code> health from the <em>same machine</em> that runs the CLI</td></tr>
+    <tr><td>Exit 1 + findings</td><td>Policy gate</td><td>Fix code, or raise <code>--fail-on</code> (admin)</td></tr>
+    <tr><td>Exit 2</td><td>Did not finish</td><td>Not a clean bill of health</td></tr>
+    <tr><td>credentials not found (Jenkins)</td><td>Old Jenkinsfile bound secrets too early</td><td>Use the repo <code>Jenkinsfile</code> as shipped for J3</td></tr>
+    <tr><td>Unable to resolve action</td><td>Wrong <code>uses:</code> path</td><td><code>./</code> if <code>action.yml</code> is repo root; <code>./athena-sast-cli</code> if nested</td></tr>
+    <tr><td>Empty SARIF on GitHub</td><td>Upload path mismatch</td><td><code>sarif_file</code> must match <code>--output</code></td></tr>
+  </table>
+
+  <h2 id="roles">Roles</h2>
+  <table>
+    <tr><th>Thing</th><th>Admin</th><th>Developer</th></tr>
+    <tr><td>FastAPI <code>API_KEY</code> / engine URL</td><td>yes</td><td>no</td></tr>
+    <tr><td>GitHub / Jenkins / Azure secret values</td><td>yes</td><td>no</td></tr>
+    <tr><td>Workflow YAML / Jenkinsfile / azure-pipelines.yml in an app repo</td><td>can help</td><td>yes</td></tr>
+    <tr><td><code>athena.yaml</code> fail_on / exclude</td><td>default</td><td>yes</td></tr>
+    <tr><td>CLI source / rules</td><td>platform team</td><td>contribute only</td></tr>
+  </table>
+
+  <footer>
+    <p>Athena SAST CLI 1.0.0 · Apache-2.0 · Local rules ATH001–ATH054 · Engine: 15 FastAPI routes. This document is original Athena product documentation; it is not Checkmarx content.</p>
+  </footer>
+</main>
+</div>
+</body>
+</html>

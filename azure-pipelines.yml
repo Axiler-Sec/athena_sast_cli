@@ -1,0 +1,67 @@
+# Checkpoint A3: local OWASP pipeline gate only.
+# Microsoft-hosted agents cannot reach http://127.0.0.1:8012.
+# Engine-from-Azure is Checkpoint A4 in docs/CI.md — do not add --repo until ATHENA_API_URL is a real http(s) URL.
+# Gate is the CLI exit code (0/1/2). Do not swallow exit 1 with continueOnError.
+# Any branch (A3 must actually run on first push). Restrict later if you want.
+trigger:
+  branches:
+    include:
+      - '*'
+pr:
+  branches:
+    include:
+      - '*'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  athenaFailOn: 'high'
+  athenaTarget: '$(Build.SourcesDirectory)'
+  sarifOut: '$(Build.ArtifactStagingDirectory)/athena-results.sarif'
+  jsonOut: '$(Build.ArtifactStagingDirectory)/athena-results.json'
+
+steps:
+  - script: |
+      set -e
+      python3 -m pip install --upgrade pip
+      python3 -m pip install .
+      athena version
+    displayName: 'Install Athena CLI'
+
+  - script: |
+      set +e
+      mkdir -p "$(Build.ArtifactStagingDirectory)"
+      EXTRA=()
+      MODES="pipeline"
+      if [ -n "${ATHENA_API_URL:-}" ]; then
+        case "${ATHENA_API_URL}" in
+          http*)
+            MODES="code-review,secrets,iac,sca,pipeline"
+            EXTRA+=(--repo "$(Build.Repository.Uri)" --branch "$(Build.SourceBranchName)")
+            ;;
+        esac
+      fi
+      athena scan \
+        --target "$(athenaTarget)" \
+        --modes "${MODES}" \
+        --format sarif \
+        --output "$(sarifOut)" \
+        --json-output "$(jsonOut)" \
+        --fail-on "$(athenaFailOn)" \
+        --quiet \
+        "${EXTRA[@]}"
+      exit $?
+    displayName: 'Run Athena scan'
+    env:
+      # CICD-SEC-6: secret pipeline variable, never hardcoded. Empty = local gate (A3).
+      ATHENA_API_URL: $(ATHENA_API_URL)
+      ATHENA_API_KEY: $(ATHENA_API_KEY)
+      ATHENA_REPO_TOKEN: $(ATHENA_REPO_TOKEN)
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Athena artifacts'
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: 'athena-sast-results'
+    condition: always()

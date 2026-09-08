@@ -1,0 +1,14 @@
+# Deliberately insecure GitHub Actions workflow
+name: insecure-pipeline
+on:
+  pull_request_target:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      API_TOKEN: "0123456789abcdef"
+    steps:
+      - uses: actions/checkout@latest
+      - name: install
+        run: pip install requests

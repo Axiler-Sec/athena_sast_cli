@@ -1,0 +1,1 @@
+{"scan_id": "ccr1", "status": "completed", "findings": [{"check_id": "go.lang.security", "issue_title": "Unsafe", "severity": "MEDIUM", "message": "binary", "file": "/app/main.go", "line": 3}], "summary": {"scope_note": "rootfs reviewed"}}

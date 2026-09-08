@@ -1,0 +1,21 @@
+# Checkpoint G3: local OWASP pipeline gate only.
+# No secrets, no --repo. GitHub-hosted runners cannot reach localhost:8012.
+# Engine-from-GitHub is Checkpoint G4 in docs/CI.md — do not add it here yet.
+name: Athena SAST
+on: [push, pull_request]
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  athena:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: ./
+        with:
+          target: '.'
+          fail-on: high
+          modes: pipeline

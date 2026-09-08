@@ -1,0 +1,53 @@
+# Copy of the root action.yml for plugin catalogs. Keep in sync.
+# Plugins contain zero scan logic — they install athena and exec it.
+name: 'Athena SAST'
+description: 'OWASP CI/CD-aligned SAST via the Athena CLI'
+permissions:
+  contents: read
+  security-events: write
+inputs:
+  target:
+    default: '.'
+  repo:
+    default: ''
+  branch:
+    default: ''
+  fail-on:
+    default: 'high'
+  modes:
+    default: 'code-review,secrets,iac,sca,pipeline'
+  sarif-output:
+    default: 'athena-results.sarif'
+  json-output:
+    default: 'athena-results.json'
+outputs:
+  sarif-file:
+    value: ${{ inputs.sarif-output }}
+  json-file:
+    value: ${{ inputs.json-output }}
+runs:
+  using: composite
+  steps:
+    - name: Install Athena CLI
+      shell: bash
+      run: python3 -m pip install "${GITHUB_ACTION_PATH}/.."
+    - name: Run Athena scan
+      shell: bash
+      env:
+        ATHENA_API_URL: ${{ env.ATHENA_API_URL }}
+        ATHENA_API_KEY: ${{ env.ATHENA_API_KEY }}
+        ATHENA_REPO_TOKEN: ${{ env.ATHENA_REPO_TOKEN }}
+      run: |
+        EXTRA=()
+        if [ -n "${{ inputs.repo }}" ]; then EXTRA+=(--repo "${{ inputs.repo }}"); fi
+        if [ -n "${{ inputs.branch }}" ]; then EXTRA+=(--branch "${{ inputs.branch }}"); fi
+        athena scan --target "${{ inputs.target }}" --modes "${{ inputs.modes }}" \
+          --format sarif --output "${{ inputs.sarif-output }}" \
+          --json-output "${{ inputs.json-output }}" \
+          --fail-on "${{ inputs.fail-on }}" --quiet "${EXTRA[@]}"
+    - name: Upload SARIF
+      if: always()
+      uses: github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474
+      with:
+        sarif_file: ${{ inputs.sarif-output }}
+        category: 'athena-sast'

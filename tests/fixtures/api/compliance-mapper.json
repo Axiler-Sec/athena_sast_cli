@@ -1,0 +1,1 @@
+{"result_kind": "mapped_controls", "frameworks": ["SOC2", "PCI DSS v4"], "mapped_controls": [{"id": "CC6.1", "findings": 1}], "inputs_summary": {"code_review": true}}

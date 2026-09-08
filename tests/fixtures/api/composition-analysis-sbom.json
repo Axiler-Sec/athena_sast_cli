@@ -1,0 +1,1 @@
+{"scan_id": "sb1", "status": "completed", "repository": "https://github.com/example/app.git", "branch": "main", "generated_by": "syft", "formats": ["cyclonedx"], "cyclonedx": {"bomFormat": "CycloneDX", "specVersion": "1.5", "components": []}, "component_count": 0}

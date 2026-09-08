@@ -1,0 +1,1 @@
+{"scan_id": "sca1", "status": "completed", "success": true, "modality": "sca", "source_endpoint": "composition-analysis", "inventory": {"components": [{"name": "requests", "version": "2.28.0", "vulnerable": true, "vulnerabilities": [{"vulnerability_id": "CVE-2023-0001", "severity": "HIGH", "cvss_score": 7.5, "message": "example"}]}]}, "triaged_findings": []}

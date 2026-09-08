@@ -1,0 +1,1 @@
+{"scan_id": "apk1", "status": "completed", "product": "apk-scan", "static": {"findings": [{"check_id": "android.permission", "issue_title": "Exported activity", "severity": "MEDIUM", "message": "exported", "file": "AndroidManifest.xml", "line": 12}]}}

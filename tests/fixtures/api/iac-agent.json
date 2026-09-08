@@ -1,0 +1,1 @@
+{"scan_id": "iac1", "status": "completed", "success": true, "modality": "iac", "source_endpoint": "iac-misconfig-v2", "inventory": {"findings": [{"check_id": "CKV_AWS_20", "issue_title": "S3 public", "severity": "HIGH", "message": "public bucket", "file": "s3.tf", "line": 8, "cwe": "CWE-284"}]}, "triaged_findings": []}

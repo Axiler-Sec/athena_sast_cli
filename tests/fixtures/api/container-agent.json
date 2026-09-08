@@ -1,0 +1,1 @@
+{"scan_id": "ca1", "status": "completed", "success": true, "modality": "container", "source_endpoint": "container-agent", "inventory": {"vulns": [{"check_id": "CVE-2024-0001", "severity": "HIGH", "message": "busybox", "file": "library/alpine", "line": 1}]}, "triaged_findings": []}

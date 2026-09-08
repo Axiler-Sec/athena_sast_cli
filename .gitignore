@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+athena-results/
+athena-results.sarif
+athena-results.json
+athena-results.xml
+.athena-baseline.json
+.coverage
+htmlcov/

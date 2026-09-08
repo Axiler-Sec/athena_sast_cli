@@ -1,0 +1,5 @@
+# Additional ignore patterns for the local OWASP gate.
+vendor/**
+node_modules/**
+**/*.min.js
+**/*.min.css

@@ -1,0 +1,23 @@
+name: Athena CLI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test local OWASP gate
+        run: |
+          python3 -m pip install pytest
+          python3 -m pytest tests/test_athena.py tests/test_client.py -v
+      - name: Dogfood local pipeline gate
+        run: |
+          python3 athena.py scan --local . --modes pipeline --fail-on critical --quiet
+          python3 athena.py version
+          python3 athena.py owasp

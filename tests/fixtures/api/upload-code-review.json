@@ -1,0 +1,25 @@
+{
+  "scan_id": "up1",
+  "status": "completed",
+  "success": true,
+  "modality": "code_review",
+  "source_endpoint": "code-review-v3",
+  "repository": "upload://archive.zip",
+  "branch": "upload",
+  "inventory": {
+    "findings": [
+      {
+        "issue_title": "Hardcoded secret",
+        "severity": "CRITICAL",
+        "message": "secret",
+        "file": "app.py",
+        "line": 2,
+        "cwe": "CWE-798"
+      }
+    ],
+    "pii": []
+  },
+  "triaged_findings": [],
+  "triaged_findings_count": 0,
+  "inventory_summary": {"total_findings": 1}
+}
