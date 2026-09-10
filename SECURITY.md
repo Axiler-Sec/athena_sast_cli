@@ -22,7 +22,7 @@ reproducer that does **not** paste live `ATHENA_API_KEY` values.
 |------|------|
 | `ATHENA_API_KEY` | Scanner-role key for `X-API-Key`. Prefer `ath_live_…` (not org-admin). |
 | `ATHENA_REPO_TOKEN` | Git clone of **private** repos only. |
-| `ATHENA_API_URL` | Engine base URL, **HTTPS** in cloud CI. Not a secret by itself. |
+| `ATHENA_API_URL` | Engine base URL, **HTTPS** in cloud CI. Set privately. Do not publish the hostname in docs, issues, or examples. |
 
 Never pass keys as CLI flags. Never `set -x` in workflows. The CLI redacts
 `ath_live_` / `ath_test_` / `ath_canary_` and common vendor prefixes in logs.

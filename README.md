@@ -15,7 +15,7 @@ export ATHENA_API_KEY="..."   # never a flag
 athena scan --repo https://github.com/ORG/APP.git --branch main --fail-on high
 ```
 
-`ATHENA_API_URL` is required for engine scans. It is **not** hardcoded in the CLI (forks must not phone home). The official hosted engine is `https://YOUR_ENGINE`.
+`ATHENA_API_URL` is required for engine scans. Set it in the environment (or a secret store). It is **not** hardcoded in the CLI. Do not put the engine hostname in this repo, issues, or examples.
 
 ### GitHub Release binary
 
