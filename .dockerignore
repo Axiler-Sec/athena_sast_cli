@@ -1,8 +1,11 @@
 .venv/
 .env
+.env.*
 .git/
 athena-results/
 **/__pycache__/
 *.pyc
 .pytest_cache/
 .cursor/
+*.pem
+*.p12

@@ -1,4 +1,4 @@
-"""Keep credentials out of CLI logs and saved raw files (CICD-SEC-6 / AXI-856).
+"""Keep credentials out of CLI logs and saved raw files (CICD-SEC-6).
 
 Debug output and `set -x` are the usual way tokens land in plaintext build
 logs. Call `redact()` on every user-visible error and on engine bodies

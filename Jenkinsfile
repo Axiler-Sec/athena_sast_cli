@@ -21,7 +21,7 @@ pipeline {
         }
         stage('Monitor') {
             steps {
-                // Snyk monitor analogue: record first, never fail on findings. Exit 2 still fails the job.
+                // Record first, never fail on findings. Exit 2 still fails the job.
                 sh '''
                 set +x
                 athena monitor --target . --modes pipeline --quiet

@@ -244,7 +244,7 @@ def cmd_scan(ns: argparse.Namespace) -> int:
 
 
 def cmd_monitor(ns: argparse.Namespace) -> int:
-    """Snyk monitor analogue: same scan, never exit 1. Exit 2 if the tool did not run."""
+    """Record a snapshot: same scan, never exit 1. Exit 2 if the tool did not run."""
     ns.monitor = True
     if not getattr(ns, "json_output", None):
         ns.json_output = "athena-results.json"
@@ -583,7 +583,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_mon = sub.add_parser(
         "monitor",
-        help="same as scan but never fails the build on findings (Snyk monitor)",
+        help="same as scan but never fails the build on findings",
     )
     _add_global(p_mon)
     p_mon.add_argument("scan_target", nargs="?", default=".")

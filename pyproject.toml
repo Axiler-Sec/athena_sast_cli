@@ -4,13 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "athena-sast"
-version = "1.0.0"
+version = "1.1.0"
 description = "Athena SAST CLI — backbone for CI plugins; client of the Athena engine plus local OWASP CI/CD gate"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Athena" }]
 keywords = ["sast", "cicd", "owasp", "sarif"]
+
+[project.urls]
+Homepage = "https://github.com/Axiler-Dev/sast-cli-scanner"
+Source = "https://github.com/Axiler-Dev/sast-cli-scanner"
+Issues = "https://github.com/Axiler-Dev/sast-cli-scanner/issues"
+Documentation = "https://github.com/Axiler-Dev/sast-cli-scanner/blob/main/docs/CI.md"
 
 [project.scripts]
 athena = "pkg.cli:main"

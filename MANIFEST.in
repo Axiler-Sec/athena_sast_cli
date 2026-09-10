@@ -1,0 +1,5 @@
+global-exclude .env
+global-exclude .env.*
+global-exclude .cursor/mcp.json
+global-exclude *.pem
+global-exclude *.p12

@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from pkg import client
 from pkg.client import EngineError
-from pkg.constants import EXIT_CLEAN, EXIT_ERROR, OWASP_RISKS, OWASP_RULE_COVERAGE
+from pkg.constants import EXIT_CLEAN, EXIT_ERROR, OWASP_RISKS, OWASP_RULE_COVERAGE, VERSION
 from pkg.engine import scan_path
 from pkg.output import to_json
 from pkg.redact import redact
@@ -134,7 +134,7 @@ def handle_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "athena-sast", "version": "1.0.0"},
+                "serverInfo": {"name": "athena-sast", "version": VERSION},
             },
         )
     if method == "notifications/initialized" or method.startswith("notifications/"):
