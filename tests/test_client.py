@@ -269,6 +269,52 @@ class TestCLIEngineCommand(unittest.TestCase):
             )
             self.assertIn(code, (0, 1))
 
+    def test_scan_continues_remaining_agents(self):
+        urls: list[str] = []
+
+        def fake_request(method, url, data=None, headers=None, timeout=None):
+            urls.append(url)
+            if "verify-repository-contents" in url:
+                return 200, _load("verify-repository-contents.json")
+            if "code-review-agent" in url:
+                return 502, b"closed"
+            if "secrets-agent" in url:
+                return 200, _load("secrets-agent.json")
+            if "iac-agent" in url:
+                return 200, _load("iac-agent.json")
+            if "sca-agent" in url:
+                return 200, _load("sca-agent.json")
+            if "monitor-snapshot" in url:
+                return 200, b'{"snapshot":"ok"}'
+            return 404, b"unexpected"
+
+        with _env(), tempfile.TemporaryDirectory() as td, patch.object(
+            client, "_request", fake_request
+        ):
+            os.environ["ATHENA_RAW_DIR"] = td
+            json_path = str(Path(td) / "athena-results.json")
+            code = main(
+                [
+                    "monitor",
+                    "--repo",
+                    "https://github.com/example/app.git",
+                    "--branch",
+                    "main",
+                    "--modes",
+                    "code-review,secrets,iac,sca",
+                    "--format",
+                    "json",
+                    "--json-output",
+                    json_path,
+                    "--quiet",
+                ]
+            )
+            self.assertEqual(code, 0)
+            joined = " ".join(urls)
+            self.assertIn("/scan/secrets-agent", joined)
+            self.assertIn("/scan/iac-agent", joined)
+            self.assertIn("/scan/sca-agent", joined)
+
 
 class TestComplianceHonesty(unittest.TestCase):
     def test_mapped_controls_not_compliant(self):

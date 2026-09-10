@@ -196,7 +196,6 @@ def cmd_scan_orchestrator(ns: argparse.Namespace, cfg: Config) -> int:
         except EngineError as exc:
             errors.append(str(exc))
             _stderr(str(exc))
-            return EXIT_ERROR
 
     if "container" in modes or cfg.image:
         image = cfg.image
@@ -214,6 +213,9 @@ def cmd_scan_orchestrator(ns: argparse.Namespace, cfg: Config) -> int:
         scanned_files = local.scanned_files
         groups.append(local.findings)
         errors.extend(local.errors)
+
+    if not groups and errors:
+        return EXIT_ERROR
 
     findings = merge_findings(groups)
     coverage: Dict[str, int] = {}

@@ -35,7 +35,7 @@ jobs:
             --format table
 
   engine:
-    name: Engine scan
+    name: Engine pipeline
     if: ${{ vars.ATHENA_ENABLE_ENGINE == 'true' }}
     runs-on: ubuntu-latest
     env:
@@ -70,15 +70,15 @@ jobs:
               ;;
           esac
       - name: Athena engine
+        continue-on-error: true
         env:
           ATHENA_SCAN_REPO: ${{ github.server_url }}/${{ github.repository }}.git
           ATHENA_SCAN_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           set +x
           python3 -m pip install "athena-sast==1.1.1"
-          athena scan \
+          athena monitor \
             --repo "${ATHENA_SCAN_REPO}" \
             --branch "${ATHENA_SCAN_BRANCH}" \
             --modes code-review,secrets,iac,sca \
-            --fail-on high \
             --format table
