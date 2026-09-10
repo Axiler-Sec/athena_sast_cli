@@ -12,31 +12,48 @@ pipeline {
         stage('Install Athena CLI') {
             steps {
                 sh '''
+                set +x
                 python3 -m pip install --upgrade pip
                 python3 -m pip install .
                 athena version
                 '''
             }
         }
+        stage('Monitor') {
+            steps {
+                // Snyk monitor analogue: record first, never fail on findings. Exit 2 still fails the job.
+                sh '''
+                set +x
+                athena monitor --target . --modes pipeline --quiet
+                '''
+            }
+        }
         stage('SAST Scan') {
             steps {
-                // Scan logic lives in the CLI. Plugins only exec it.
+                // Scan logic lives in the CLI. Plugins only exec it. This stage is the gate.
+                // QA: never add set -x — ATHENA_API_KEY would land in the console log.
                 sh '''
+                set +x
                 set +e
-                MODES="pipeline"
-                EXTRA=""
-                # J4: bind ATHENA_API_URL / ATHENA_API_KEY on the job, then set REPO_URL.
+                SCAN_EXIT=0
                 if [ -n "${ATHENA_API_URL:-}" ] && [ -n "${REPO_URL:-}" ]; then
-                  MODES="code-review,secrets,iac,sca,pipeline"
-                  EXTRA="--repo ${REPO_URL} --branch ${BRANCH_NAME:-main}"
+                  athena scan \
+                    --target . \
+                    --modes code-review,secrets,iac,sca,pipeline \
+                    --format sarif --output athena-results.sarif \
+                    --json-output athena-results.json \
+                    --fail-on high --quiet \
+                    --repo "${REPO_URL}" --branch "${BRANCH_NAME:-main}"
+                  SCAN_EXIT=$?
+                else
+                  athena scan \
+                    --target . \
+                    --modes pipeline \
+                    --format sarif --output athena-results.sarif \
+                    --json-output athena-results.json \
+                    --fail-on high --quiet
+                  SCAN_EXIT=$?
                 fi
-                athena scan \
-                  --target . \
-                  --modes "${MODES}" \
-                  --format sarif --output athena-results.sarif \
-                  --json-output athena-results.json \
-                  --fail-on high --quiet $EXTRA
-                SCAN_EXIT=$?
                 athena scan --target . --local . --format junit --output athena-results.xml --fail-on high --quiet || true
                 exit $SCAN_EXIT
                 '''

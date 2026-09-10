@@ -23,6 +23,7 @@ variables:
 
 steps:
   - script: |
+      set +x
       set -e
       python3 -m pip install --upgrade pip
       python3 -m pip install .
@@ -30,6 +31,13 @@ steps:
     displayName: 'Install Athena CLI'
 
   - script: |
+      set +x
+      set -e
+      athena monitor --target "$(athenaTarget)" --modes pipeline --quiet
+    displayName: 'Athena monitor (record; does not gate on findings)'
+
+  - script: |
+      set +x
       set +e
       mkdir -p "$(Build.ArtifactStagingDirectory)"
       EXTRA=()
@@ -55,6 +63,7 @@ steps:
     displayName: 'Run Athena scan'
     env:
       # CICD-SEC-6: secret pipeline variable, never hardcoded. Empty = local gate (A3).
+      # QA: do not add set -x to the scan script — keys would appear in the job log.
       ATHENA_API_URL: $(ATHENA_API_URL)
       ATHENA_API_KEY: $(ATHENA_API_KEY)
       ATHENA_REPO_TOKEN: $(ATHENA_REPO_TOKEN)

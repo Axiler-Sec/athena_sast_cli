@@ -23,7 +23,11 @@ You (laptop or CI)
 
 The **web UI** also talks to the FastAPI engine. The UI does **not** run this CLI. Jenkins / GitHub / Azure do **not** call the engine themselves — they only run the CLI.
 
-**Golden rule:** passwords and API keys go in **environment variables** or a **secret store**. Never `athena --api-key ....` (that would land in shell history).
+**Golden rule:** passwords and API keys go in **environment variables** or a **secret store**. Never `athena --api-key ....` (that would land in shell history). Never `set -x` in a plugin script (tokens land in plaintext build logs).
+
+What “CI checks” means (which checks, triggers, outputs), how this CLI relates to **ENG-74**, and AXI-856 / OWASP v1 vs later: **[CI-CHECKS.md](CI-CHECKS.md)**.
+
+Snyk pairing: `athena monitor` records a snapshot and **never fails on findings**. `athena scan --fail-on high` is the gate. Engine-from-CI (G4) stays off until the engine has a **private, reachable, HTTPS** URL — GitHub-hosted runners cannot use `http://127.0.0.1:8012`, and a public `http://` ALB would send `ATHENA_API_KEY` in cleartext.
 
 ---
 
@@ -281,6 +285,10 @@ Order: **GitHub first** → Jenkins → Azure.
 
 ## Wrapper 1 of 3 — GitHub Actions
 
+**Pwn request (CICD-SEC-4):** do **not** use `on: pull_request_target` and then `actions/checkout` of the PR head. That exposes `ATHENA_API_KEY` / `ATHENA_REPO_TOKEN` to a fork PR (AXI-856 class). Use `pull_request` or `push`. The local gate flags the bad pattern as ATH042.
+
+**CICD-SEC-8:** pin third-party actions (and this CLI, if it is a separate repo) to a **40-character commit SHA**. `@v1` / `@main` is how tj-actions/changed-files was hijacked. ATH041 flags mutable tags in *customer* YAML; our examples must pin too.
+
 ### Checkpoint G0 — engine still up? (do this before any YAML)
 
 In a terminal:
@@ -332,7 +340,7 @@ GitHub’s machines are in the cloud. They **cannot** call `http://127.0.0.1:801
 
 So the **first** GitHub workflow must be **local gate only** (no `repo:` input, no API secrets). That still tests: checkout → install CLI → `athena scan` → SARIF file.
 
-Engine-from-GitHub is Checkpoint G4, only after this repo is on GitHub **and** the engine URL is reachable from the internet (not localhost).
+Engine-from-GitHub is Checkpoint G4, only after this repo is on GitHub **and** the engine URL is reachable from GitHub **without sending the API key in cleartext** (HTTPS, or a self-hosted runner on the engine network — not a public `http://` ALB).
 
 **Good:** you can say out loud: “localhost is my laptop; GitHub Actions is a different computer.”  
 If that is unclear, do not create secrets yet.
@@ -360,8 +368,8 @@ jobs:
   athena:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
       - uses: ./
@@ -369,6 +377,12 @@ jobs:
           target: '.'
           fail-on: high
           modes: pipeline
+      - name: Athena monitor (record; does not gate on findings)
+        if: always()
+        run: |
+          set +x
+          python3 -m pip install --quiet "${GITHUB_WORKSPACE}"
+          athena monitor --target . --modes pipeline --quiet
 ```
 
 `uses: ./` means “the `action.yml` in **this** repo root”. If the GitHub repo is the parent `athena_sast` folder, use `uses: ./athena-sast-cli` instead.
@@ -380,6 +394,9 @@ jobs:
 - Job ran. Scan step exit **0** or **1** (1 = findings; still a working tool).
 - A file `athena-results.sarif` was produced (open the job logs / artifacts).
 - You did **not** need `ATHENA_API_KEY`.
+- The **Athena monitor** step ran (`if: always()`). It does not fail the job on findings.
+
+**Stop here for GitHub.** Next is Jenkins (J0), then Azure (A0). Do not add engine secrets until G3 is Good. Do not put localhost in secrets. G4 needs a URL GitHub can reach **over HTTPS** (or a self-hosted runner). A public HTTP ALB is not acceptable.
 
 **Bad:**
 
@@ -387,46 +404,36 @@ jobs:
 - pip / python error → `setup-python` missing.
 - Exit **2** → read the scan step log; do not add secrets to “fix” it.
 
-**Stop here for GitHub.** Next is Jenkins (J0), then Azure (A0). Do not add engine secrets until G3 is Good. Do not put localhost in secrets.
-
 ---
 
-### Checkpoint G4 — engine from GitHub (only if G3 passed **and** engine has a public URL)
+### Checkpoint G4 — engine from GitHub (only if G3 passed **and** the engine URL is reachable **without cleartext keys**)
 
-Skip this while the engine is only `http://127.0.0.1:8012`.
+Keep [`.github/workflows/athena.yml`](../.github/workflows/athena.yml) as the **local pipeline gate**. Do not put engine secrets there.
 
-When the engine is on a URL GitHub can reach (VPN/self-hosted runner on this machine, or a deployed ALB):
+Skip G4 while the engine is only `http://127.0.0.1:8012`. GitHub-hosted runners cannot reach your laptop. A public `http://` ALB is also a blocker: `ATHENA_API_KEY` would travel in the clear.
 
-1. Repo **Settings** → **Secrets and variables** → **Actions** → New secret:
+**You attach DNS + ACM** (this repo does not mint a certificate):
+
+1. Custom domain pointing at the Fargate ALB.
+2. ACM certificate in the **ALB region**; `.env` `ACM_CERTIFICATE_ARN` + `PUBLIC_HOSTNAME`.
+3. Prove `curl -sS -H "X-API-Key: …" https://YOUR_HOST/health` returns 200. Until that works, do not claim GitHub talks to the engine.
+
+Then:
+
+1. Repo **Settings** → **Secrets and variables** → **Actions** → secrets:
 
 | Name (exact) | Value |
 |--------------|--------|
-| `ATHENA_API_URL` | public engine URL, **no** trailing `/` |
+| `ATHENA_API_URL` | `https://YOUR_HOST` — **no** trailing `/`. Never a public `http://` ALB. Loopback `http://127.0.0.1:8012` only on a **self-hosted** runner. |
 | `ATHENA_API_KEY` | same value as FastAPI `API_KEY` |
 
-2. Change the workflow `env:` + `with.repo` as in the snippet below. Push.
+2. Same page → **Variables** → `ATHENA_ENABLE_ENGINE` = `true`. That turns on [`.github/workflows/athena-engine.yml`](../.github/workflows/athena-engine.yml). The job refuses public `http://` URLs before it sends the key.
+3. Dashboard: `https://YOUR_HOST/ui` (monitor **snapshots**, not a live Snyk org). Mongo must be configured or the list stays empty (`snapshot_store: local_only`). On Fargate, open `/ui?api_key=…` once (the page stores the key in sessionStorage and strips it from the URL). `/docs` stays API-key gated.
 
-```yaml
-    env:
-      ATHENA_API_URL: ${{ secrets.ATHENA_API_URL }}
-      ATHENA_API_KEY: ${{ secrets.ATHENA_API_KEY }}
-      ATHENA_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: ./
-        with:
-          repo: ${{ github.server_url }}/${{ github.repository }}
-          branch: ${{ github.ref_name }}
-          fail-on: high
-          target: '.'
-          modes: code-review,secrets,iac,sca,pipeline
-```
+**Good:** engine job log shows repo verify then agents; SARIF under **Security → Code scanning**; monitor may print `snapshot: persisted`.  
+**Bad:** `engine unreachable` → GitHub still cannot see that URL. `auth failed` → secret ≠ engine `API_KEY`. Job skipped entirely → variable is not exactly `true`.
 
-**Good:** scan log shows `repo verify...` then agents. SARIF appears under **Security → Code scanning**.  
-**Bad:** `engine unreachable` → GitHub still cannot see that URL. `auth failed` → secret ≠ engine `API_KEY`.
+There is no second Python SDK. Humans use `athena`; agents use `athena mcp` on this machine (stdio, not on the ALB).
 
 ---
 
@@ -484,7 +491,7 @@ If Jenkins is on another machine or a container, `127.0.0.1:8012` is **not** you
 - `credentials not found` → you added `credentials('athena-api-key')` too early. Use the repo `Jenkinsfile` as shipped.
 - `pip install` / `athena: not found` → Python/pip/PATH on the agent; workspace is not this CLI folder.
 
-**Stop.** Do not add Azure until J3 is Good. Do not bind engine credentials until J3 is Good.
+**Stop.** Do not add Azure until J3 is Good. Do not bind engine credentials until J3 is Good. The **Monitor** stage runs before the gate so a snapshot is recorded even when the scan later exits 1.
 
 ### Checkpoint J4 — engine from Jenkins (only if J3 passed **and** the **agent** can reach the engine URL)
 
@@ -537,6 +544,7 @@ A Microsoft-hosted agent is a VM in Azure’s cloud. It is not your laptop. Skip
 **Good:**
 
 - Install step prints `Athena SAST v1.0.0`.
+- **Athena monitor** ran before the scan (does not fail on findings).
 - Scan step exit `0` or `1` (1 = findings; pipeline **fails** — that is correct). Do not tick continue on error.
 - Artifact `athena-sast-results` still publishes (`condition: always()`).
 
@@ -553,7 +561,7 @@ A Microsoft-hosted agent is a VM in Azure’s cloud. It is not your laptop. Skip
 
 | Name | Value | Padlock |
 |------|--------|---------|
-| `ATHENA_API_URL` | public or agent-reachable engine URL, no trailing `/` | no |
+| `ATHENA_API_URL` | HTTPS or private agent-reachable engine URL, no trailing `/`. Do not use a public `http://` ALB. | no |
 | `ATHENA_API_KEY` | same as FastAPI `API_KEY` | **yes** |
 | `ATHENA_REPO_TOKEN` | git token | **yes** |
 
@@ -568,9 +576,18 @@ For an **application** repo that is not this CLI: copy `athena-sast-cli` into th
 
 # Part 6 — GitHub secrets on an application repo (same as Checkpoint G4)
 
-If the repo you want scanned is **not** this CLI repo: Settings → Secrets → `ATHENA_API_URL`, `ATHENA_API_KEY`. Workflow `env:` must set those — composite actions cannot read `secrets.*` internally.
+If the repo you want scanned is **not** this CLI repo: Settings → Secrets → `ATHENA_API_URL`, `ATHENA_API_KEY`. Workflow `env:` must set those — composite actions cannot read `secrets.*` internally. Copy [`.github/workflows/athena-engine.yml`](../.github/workflows/athena-engine.yml) and set variable `ATHENA_ENABLE_ENGINE=true`. Pin `uses: YOUR_ORG/athena-sast-cli@COMMIT_SHA` (40-character SHA). Do not use `@main`.
 
-Pin `uses: YOUR_ORG/athena-sast-cli@COMMIT_SHA` (40-character SHA). Do not use `@main`.
+Cursor MCP (this laptop only): copy [`.cursor/mcp.json.example`](../.cursor/mcp.json.example) to a local mcp config. `athena mcp` is stdio — never expose it on the ALB.
+
+CLI container:
+
+```bash
+docker build -t athena-sast-cli .
+docker run --rm -v "$PWD":/src -w /src athena-sast-cli scan --target . --modes pipeline
+```
+
+Do not pass secrets as `docker build --build-arg`. Use `-e ATHENA_API_KEY` at **run** time only.
 
 ---
 

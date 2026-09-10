@@ -7,6 +7,11 @@ permissions:
   contents: read
   security-events: write
 
+# CICD-SEC-4 / pwn request: do NOT run this action from pull_request_target
+# while checking out the PR head. Fork PRs would inherit this repo's
+# ATHENA_API_KEY / ATHENA_REPO_TOKEN. Use pull_request (or push) only.
+# See docs/CI-CHECKS.md.
+
 inputs:
   target:
     description: 'Local checkout path for the pipeline gate'
@@ -44,6 +49,7 @@ runs:
     - name: Install Athena CLI
       shell: bash
       run: |
+        set +x
         python3 -m pip install --upgrade pip
         python3 -m pip install "${GITHUB_ACTION_PATH}"
 
@@ -51,11 +57,13 @@ runs:
       id: scan
       shell: bash
       env:
-        # CICD-SEC-6: secrets from the caller workflow env, never hardcoded
+        # CICD-SEC-6: secrets from the caller workflow env, never hardcoded.
+        # QA: never add set -x here — tokens would land in plaintext logs.
         ATHENA_API_URL: ${{ env.ATHENA_API_URL }}
         ATHENA_API_KEY: ${{ env.ATHENA_API_KEY }}
         ATHENA_REPO_TOKEN: ${{ env.ATHENA_REPO_TOKEN }}
       run: |
+        set +x
         set +e
         EXTRA=()
         if [ -n "${{ inputs.repo }}" ]; then
@@ -79,7 +87,7 @@ runs:
     # CICD-SEC-10: always upload SARIF. CICD-SEC-8: pin to commit SHA, not @v3.
     - name: Upload SARIF (GitHub Code Scanning)
       if: always()
-      uses: github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474
+      uses: github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474 # v3.28.18
       with:
         sarif_file: ${{ inputs.sarif-output }}
         category: 'athena-sast'

@@ -101,4 +101,6 @@ ENGINE_ENDPOINTS = {
     "container_review": "/scan/container-code-review",
     "apk": "/scan/apk-scan",
     "compliance": "/scan/compliance-mapper",
+    "monitor_snapshot": "/scan/monitor-snapshot",
+    "monitor_snapshots": "/scan/monitor-snapshots",
 }

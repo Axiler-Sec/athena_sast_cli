@@ -12,3 +12,5 @@ athena-results.xml
 .athena-baseline.json
 .coverage
 htmlcov/
+.env
+.cursor/mcp.json

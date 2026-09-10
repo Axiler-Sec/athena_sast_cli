@@ -184,6 +184,10 @@ class TestSpecificRules(unittest.TestCase):
         assert "ATH040" in ids
         assert "ATH041" in ids
         assert "ATH047" in ids
+        ath041 = [f for f in d["findings"] if f["rule_id"] == "ATH041"]
+        assert len(ath041) >= 2
+        joined = " ".join(f.get("snippet") or "" for f in ath041)
+        assert "@v1" in joined or "changed-files" in joined
 
 
 class TestCLICommands(unittest.TestCase):
@@ -222,6 +226,20 @@ class TestCLICommands(unittest.TestCase):
         r = subprocess.run(f"{CLI} --help", shell=True, capture_output=True, text=True)
         assert "--api-key" not in r.stdout
         assert "--token" not in r.stdout
+
+    def test_monitor_does_not_fail_on_findings(self):
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "athena-results.json"
+            r = subprocess.run(
+                f"{CLI} monitor tests/targets/bad_python.py --fail-on low "
+                f"--format json --json-output {out} --quiet",
+                shell=True,
+                capture_output=True,
+                text=True,
+            )
+            assert r.returncode == 0, r.stderr
+            d = json.loads(out.read_text())
+            assert d["summary"]["total_findings"] > 0
 
     def test_junit_groups_by_owasp(self):
         r = subprocess.run(

@@ -23,8 +23,14 @@ from pkg.constants import (
 from pkg.engine import scan_path
 from pkg.models import Finding, ScanResult
 from pkg.normalize import merge_findings, normalize_engine
+from pkg.mcp_server import cmd_mcp
 from pkg.output import render, to_json
+from pkg.redact import redact
 from pkg.rules import all_rules, public_rule_id, public_rule_name
+
+
+def _stderr(msg: str) -> None:
+    sys.stderr.write(redact(msg) + "\n")
 
 
 def _fail_on_triggered(findings: List[Finding], fail_on: str) -> bool:
@@ -66,9 +72,9 @@ def _emit(result: ScanResult, cfg: Config) -> int:
         # missing target etc.
         if any("does not exist" in e for e in result.errors):
             if not cfg.quiet and cfg.format == "table":
-                sys.stderr.write(result.errors[0] + "\n")
+                _stderr(result.errors[0])
             return EXIT_ERROR
-    if _fail_on_triggered(result.findings, cfg.fail_on):
+    if not cfg.monitor and _fail_on_triggered(result.findings, cfg.fail_on):
         return EXIT_FINDINGS
     return EXIT_CLEAN
 
@@ -89,6 +95,7 @@ def _cfg_from_ns(ns: argparse.Namespace) -> Config:
         "target": getattr(ns, "target", None),
         "image": getattr(ns, "image", None),
         "raw_dir": getattr(ns, "raw_dir", None),
+        "monitor": getattr(ns, "monitor", False),
     }
     return load_config(config_path=getattr(ns, "config", None), cli=cli)
 
@@ -128,7 +135,7 @@ def cmd_scan_local(ns: argparse.Namespace, cfg: Config) -> int:
     result = scan_path(target, exclude=cfg.exclude)
     if result.errors and not Path(target).exists():
         if not cfg.quiet:
-            sys.stderr.write(result.errors[0] + "\n")
+            _stderr(result.errors[0])
         return EXIT_ERROR
     return _emit(result, cfg)
 
@@ -155,14 +162,14 @@ def cmd_scan_orchestrator(ns: argparse.Namespace, cfg: Config) -> int:
     scanned_files = 0
 
     if not cfg.quiet:
-        sys.stderr.write("repo verify...\n")
+        _stderr("repo verify...")
     try:
         body, ref = client.repo_verify(cfg.repo, cfg.branch or "main", raw_dir=raw_dir)
         raw_refs.append(ref)
         if body.get("verified") is False:
             raise EngineError("repository could not be verified")
     except EngineError as exc:
-        sys.stderr.write(str(exc) + "\n")
+        _stderr(str(exc))
         return EXIT_ERROR
 
     modes = [m.strip() for m in cfg.modes]
@@ -181,14 +188,14 @@ def cmd_scan_orchestrator(ns: argparse.Namespace, cfg: Config) -> int:
         if mode not in agent_map:
             continue
         if not cfg.quiet:
-            sys.stderr.write(f"{mode}...\n")
+            _stderr(f"{mode}...")
         try:
             payload, ref = agent_map[mode]()
             raw_refs.append(ref)
             groups.append(normalize_engine(payload, endpoint=mode))
         except EngineError as exc:
             errors.append(str(exc))
-            sys.stderr.write(str(exc) + "\n")
+            _stderr(str(exc))
             return EXIT_ERROR
 
     if "container" in modes or cfg.image:
@@ -197,7 +204,7 @@ def cmd_scan_orchestrator(ns: argparse.Namespace, cfg: Config) -> int:
             raise EngineError("--image is required for container mode")
         registry, repository, tag = _parse_image(image)
         if not cfg.quiet:
-            sys.stderr.write("container...\n")
+            _stderr("container...")
         payload, ref = client.container(registry, repository, tag, raw_dir=raw_dir)
         raw_refs.append(ref)
         groups.append(normalize_engine(payload, endpoint="container"))
@@ -234,6 +241,40 @@ def cmd_scan(ns: argparse.Namespace) -> int:
         return cmd_scan_orchestrator(ns, cfg)
     ns.scan_target = getattr(ns, "scan_target", None) or cfg.target
     return cmd_scan_local(ns, cfg)
+
+
+def cmd_monitor(ns: argparse.Namespace) -> int:
+    """Snyk monitor analogue: same scan, never exit 1. Exit 2 if the tool did not run."""
+    ns.monitor = True
+    if not getattr(ns, "json_output", None):
+        ns.json_output = "athena-results.json"
+    if not getattr(ns, "output", None) and not getattr(ns, "format", None):
+        ns.format = "sarif"
+        ns.output = "athena-results.sarif"
+    code = cmd_scan(ns)
+    if code == EXIT_ERROR:
+        return EXIT_ERROR
+    cfg = _cfg_from_ns(ns)
+    path = cfg.json_output
+    if path and Path(path).is_file():
+        try:
+            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = None
+        if isinstance(payload, dict):
+            try:
+                body, _ = client.monitor_snapshot(payload, raw_dir=cfg.raw_dir)
+                kind = str(body.get("snapshot") or "unknown") if isinstance(body, dict) else "unknown"
+                if not cfg.quiet:
+                    _stderr(f"snapshot: {kind}")
+            except EngineError as exc:
+                if not cfg.quiet:
+                    _stderr(f"snapshot: local_only ({exc})")
+        elif not cfg.quiet:
+            _stderr("snapshot: local_only")
+    elif not cfg.quiet:
+        _stderr("snapshot: local_only")
+    return EXIT_CLEAN
 
 
 def _print_json(payload: Any, cfg: Config) -> int:
@@ -440,7 +481,7 @@ def cmd_pr_create(ns: argparse.Namespace) -> int:
         repo = ns.repo
         branch = ns.branch
     if not repo or not branch:
-        sys.stderr.write("pr create requires --repo and --branch\n")
+        _stderr("pr create requires --repo and --branch")
         return EXIT_ERROR
     payload, _ = client.create_pr(repo, branch, finding, raw_dir=cfg.raw_dir)
     return _print_json(payload, cfg)
@@ -526,6 +567,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_owasp = sub.add_parser("owasp", help="show OWASP CI/CD Top 10 coverage")
     p_owasp.set_defaults(func=cmd_owasp)
 
+    p_mcp = sub.add_parser("mcp", help="stdio MCP server for Cursor (local only, not a public port)")
+    p_mcp.set_defaults(func=cmd_mcp)
+
     p_scan = sub.add_parser("scan", help="orchestrated CI scan or local OWASP gate")
     _add_global(p_scan)
     p_scan.add_argument("scan_target", nargs="?", default=".")
@@ -536,6 +580,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_scan.add_argument("--modes")
     p_scan.add_argument("--image")
     p_scan.set_defaults(func=cmd_scan)
+
+    p_mon = sub.add_parser(
+        "monitor",
+        help="same as scan but never fails the build on findings (Snyk monitor)",
+    )
+    _add_global(p_mon)
+    p_mon.add_argument("scan_target", nargs="?", default=".")
+    p_mon.add_argument("--local", dest="local", help="local OWASP gate only (no API)")
+    p_mon.add_argument("--repo")
+    p_mon.add_argument("--branch")
+    p_mon.add_argument("--target", dest="target")
+    p_mon.add_argument("--modes")
+    p_mon.add_argument("--image")
+    p_mon.set_defaults(func=cmd_monitor)
 
     p_rv = sub.add_parser("repo")
     rsub = p_rv.add_subparsers(dest="repo_cmd")
@@ -572,7 +630,7 @@ def build_parser() -> argparse.ArgumentParser:
         if getattr(ns, "cr_cmd", None) == "upload":
             return cmd_code_review_upload(ns)
         if not ns.repo or not ns.branch:
-            sys.stderr.write("code-review requires --repo and --branch\n")
+            _stderr("code-review requires --repo and --branch")
             return EXIT_ERROR
         return cmd_code_review(ns)
 
@@ -593,7 +651,7 @@ def build_parser() -> argparse.ArgumentParser:
         if getattr(ns, "sec_cmd", None) == "upload":
             return cmd_secrets_upload(ns)
         if not ns.repo or not ns.branch:
-            sys.stderr.write("secrets requires --repo and --branch\n")
+            _stderr("secrets requires --repo and --branch")
             return EXIT_ERROR
         return cmd_secrets(ns)
 
@@ -614,7 +672,7 @@ def build_parser() -> argparse.ArgumentParser:
         if getattr(ns, "iac_cmd", None) == "upload":
             return cmd_iac_upload(ns)
         if not ns.repo or not ns.branch:
-            sys.stderr.write("iac requires --repo and --branch\n")
+            _stderr("iac requires --repo and --branch")
             return EXIT_ERROR
         return cmd_iac(ns)
 
@@ -635,7 +693,7 @@ def build_parser() -> argparse.ArgumentParser:
         if getattr(ns, "sca_cmd", None) == "upload":
             return cmd_sca_upload(ns)
         if not ns.repo or not ns.branch:
-            sys.stderr.write("sca requires --repo and --branch\n")
+            _stderr("sca requires --repo and --branch")
             return EXIT_ERROR
         return cmd_sca(ns)
 
@@ -672,7 +730,7 @@ def build_parser() -> argparse.ArgumentParser:
         if getattr(ns, "ct_cmd", None) == "review":
             return cmd_container_review(ns)
         if not ns.registry or not ns.repository:
-            sys.stderr.write("container requires --registry and --repository\n")
+            _stderr("container requires --registry and --repository")
             return EXIT_ERROR
         return cmd_container(ns)
 
@@ -723,19 +781,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         return int(func(ns))
     except EngineError as exc:
-        sys.stderr.write(str(exc) + "\n")
+        _stderr(str(exc))
         return EXIT_ERROR
     except ConfigError as exc:
-        sys.stderr.write(str(exc) + "\n")
+        _stderr(str(exc))
         return EXIT_ERROR
     except FileNotFoundError as exc:
-        sys.stderr.write(str(exc) + "\n")
+        _stderr(str(exc))
         return EXIT_ERROR
     except OSError as exc:
-        sys.stderr.write(str(exc) + "\n")
+        _stderr(str(exc))
         return EXIT_ERROR
     except json.JSONDecodeError as exc:
-        sys.stderr.write(f"invalid JSON: {exc}\n")
+        _stderr(f"invalid JSON: {exc}")
         return EXIT_ERROR
 
 

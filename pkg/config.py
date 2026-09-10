@@ -40,6 +40,7 @@ class Config:
     target: str = "."
     image: Optional[str] = None
     config_path: Optional[str] = None
+    monitor: bool = False
 
 
 def _strip_quotes(value: str) -> str:
@@ -161,4 +162,5 @@ def load_config(
     cfg.branch = (cli or {}).get("branch") or _env("ATHENA_BRANCH") or None
     cfg.target = str((cli or {}).get("target") or _env("ATHENA_TARGET") or ".")
     cfg.image = (cli or {}).get("image") or _env("ATHENA_IMAGE") or None
+    cfg.monitor = bool((cli or {}).get("monitor"))
     return cfg

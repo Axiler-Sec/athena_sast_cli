@@ -138,6 +138,7 @@
   <a href="#outputs">Results, SARIF, and JSON</a>
   <a href="#engine">Engine endpoints</a>
   <a href="#owasp">OWASP CI/CD coverage</a>
+  <a href="#ci-checks">CI checks capability</a>
   <a href="#plugins">CI plugins (wrappers)</a>
   <a class="sub" href="#github">GitHub Actions</a>
   <a class="sub" href="#jenkins">Jenkins</a>
@@ -194,6 +195,11 @@ athena version
 
 python3 -m unittest discover -s tests</code></pre>
   <p>Package name: <code>athena-sast</code> 1.0.0. Entry point: <code>athena = pkg.cli:main</code>.</p>
+  <p>CLI Docker image (no secrets in the image):</p>
+  <pre><code>docker build -t athena-sast-cli .
+docker run --rm -v "$PWD":/src -w /src athena-sast-cli scan --target . --modes pipeline --fail-on high
+# Engine: docker run --rm -e ATHENA_API_URL -e ATHENA_API_KEY -v "$PWD":/src -w /src athena-sast-cli scan --repo URL --branch main</code></pre>
+  <p>Cursor MCP: copy <code>.cursor/mcp.json.example</code> to a local <code>mcp.json</code>, set <code>cwd</code> and env. Run <code>athena mcp</code> is stdio-only — not a public port.</p>
 
   <h2 id="config">Configuration and authentication</h2>
   <h3>Precedence</h3>
@@ -202,12 +208,12 @@ python3 -m unittest discover -s tests</code></pre>
   <table>
     <tr><th>Variable</th><th>Purpose</th></tr>
     <tr><td><code>ATHENA_API_URL</code></td><td>Engine base URL, no trailing slash. Example: <code>http://127.0.0.1:8012</code> (Docker maps host 8012 → container 8000).</td></tr>
-    <tr><td><code>ATHENA_API_KEY</code></td><td>Same value as FastAPI <code>API_KEY</code>. Sent as header <code>X-API-Key</code>. Never a CLI flag.</td></tr>
+    <tr><td><code>ATHENA_API_KEY</code></td><td>Scanner-role engine key, sent as <code>X-API-Key</code>. Prefer <code>ath_live_…</code> (not the lab master <code>API_KEY</code>). Never a CLI flag. One key per repo/org — no shared master keys in CI (AXI-856).</td></tr>
     <tr><td><code>ATHENA_REPO_TOKEN</code></td><td>Git token for private clones. Public repos often omit this.</td></tr>
     <tr><td><code>ATHENA_REGISTRY_USER</code> / <code>ATHENA_REGISTRY_PASSWORD</code></td><td>Private container registries.</td></tr>
     <tr><td><code>ATHENA_HTTP_TIMEOUT</code></td><td>Seconds. Default <strong>600</strong>.</td></tr>
   </table>
-  <div class="note">There is no <code>--api-key</code>. Flags would land in shell history (CICD-SEC-6). Composite GitHub Actions cannot read <code>secrets.*</code>; the <em>caller</em> workflow must set <code>env:</code>.</div>
+  <div class="note">There is no <code>--api-key</code>. Flags would land in shell history (CICD-SEC-6). Composite GitHub Actions cannot read <code>secrets.*</code>; the <em>caller</em> workflow must set <code>env:</code>. Plugin scripts must start with <code>set +x</code> — never <code>set -x</code> (tokens in plaintext logs). The CLI redacts <code>ath_live_</code> / <code>ghp_</code> / env secret values from errors and saved raw files.</div>
   <h3>Default <code>athena.yaml</code></h3>
   <pre><code>fail_on: high
 format: sarif
@@ -254,7 +260,9 @@ python3 athena.py scan \
     <tr><td><code>athena version</code></td><td>Print <code>Athena SAST v1.0.0</code>.</td></tr>
     <tr><td><code>athena rules</code></td><td>List local OWASP rules.</td></tr>
     <tr><td><code>athena owasp</code></td><td>CICD-SEC-1…10 coverage map.</td></tr>
-    <tr><td><code>athena scan [path]</code></td><td>Local gate, or orchestrated CI scan if <code>--repo</code> is set. <code>--local</code> forces disk-only.</td></tr>
+    <tr><td><code>athena scan [path]</code></td><td>Local gate, or orchestrated CI scan if <code>--repo</code> is set. <code>--local</code> forces disk-only. Exit 1 on findings at/above <code>--fail-on</code>.</td></tr>
+    <tr><td><code>athena monitor [path]</code></td><td>Same as scan, but <strong>never exit 1</strong> (Snyk <code>monitor</code>). Exit 2 if the tool did not run. Writes SARIF/JSON. POSTs <code>/scan/monitor-snapshot</code> when the engine is up; otherwise <code>snapshot: local_only</code>. The engine <code>/ui</code> lists those snapshots when Mongo is on — not a live Snyk org.</td></tr>
+    <tr><td><code>athena mcp</code></td><td>stdio MCP for Cursor on this machine. Not a public server.</td></tr>
     <tr><td><code>athena repo verify</code></td><td>POST <code>/scan/verify-repository-contents</code>.</td></tr>
     <tr><td><code>athena repo branches</code></td><td>POST <code>/scan/list-repository-branches</code>.</td></tr>
     <tr><td><code>athena image verify</code></td><td>POST <code>/scan/verify-container-image</code>.</td></tr>
@@ -345,14 +353,29 @@ python3 athena.py scan \
     <tr><td>CICD-SEC-9</td><td>Improper Artifact Integrity</td><td>ATH050–ATH053</td></tr>
     <tr><td>CICD-SEC-10</td><td>Insufficient Logging and Visibility</td><td>ATH046</td></tr>
   </table>
-  <p>Examples: ATH040 secret in pipeline <code>env:</code>; ATH041 Action pinned to a moving tag; ATH047 unpinned <code>pip install</code>.</p>
+  <p>Examples: ATH040 secret in pipeline <code>env:</code>; ATH041 Action pinned to <code>@v1</code> / <code>@main</code> / <code>@latest</code> instead of a SHA; ATH047 unpinned <code>pip install</code>.</p>
+
+  <h2 id="ci-checks">CI checks capability</h2>
+  <p>Engineering spec (ENG-74 split, AXI-856 token controls, v1 vs later): <code>docs/CI-CHECKS.md</code>.</p>
+  <p><strong>ENG-74</strong> is the plugin wrappers (install + exec this CLI). This CLI owns the checks, outputs, and credential hygiene. Plugins are a child of the CLI, not a second scanner.</p>
+  <h3>Which checks, what triggers them, what comes out</h3>
+  <ul>
+    <li><strong>Checks.</strong> Local regex gate (<code>modes: pipeline</code>, <code>source: local_owasp</code>, CICD-SEC-1…10) and, when engine env is set, product agents (<code>source: engine</code>).</li>
+    <li><strong>Triggers.</strong> <code>push</code> / <code>pull_request</code> (GitHub), Jenkins SCM builds, Azure <code>trigger</code>/<code>pr</code>, or a laptop <code>athena scan</code>. Never <code>pull_request_target</code> plus checkout of the PR head (pwn request — secrets exposed to fork PRs).</li>
+    <li><strong>Output.</strong> Exit <code>0/1/2</code>, CLI-normalized SARIF, Athena JSON, JUnit on Jenkins.</li>
+  </ul>
+  <div class="warn">
+    <strong>v1 non-negotiable (AXI-856):</strong> scanner-role keys only; no argv secrets; CLI log redaction; <code>set +x</code> in wrappers; pin our Action dependencies to a commit SHA; warn against pwn request. OIDC short-lived tokens, canary keys, GitHub secret-scanning partner, and ENG-58-style anomaly detection are later (control plane / engine).
+  </div>
+  <p>The local gate <strong>reads files</strong>. It does not run the target’s <code>postinstall</code> or build scripts (CICD-SEC-4 on the CLI side). Engine isolation of cloned third-party trees is an engine design constraint — do not retrofit it after the scan host is set.</p>
+  <p>Distribute this Action as <code>uses: ORG/athena-sast-cli@COMMIT_SHA</code>. A compromised plugin is a supply-chain hit on every customer (CICD-SEC-3). Artifact signing and self-hosted runner hardening are later; keep a line in the spec.</p>
 
   <h2 id="plugins">CI plugins (wrappers)</h2>
-  <p>A wrapper only: (1) installs the CLI, (2) execs <code>athena scan</code>, (3) always publishes SARIF/JSON (and JUnit on Jenkins). The gate is the CLI exit code. Do not put regex or API calls in YAML.</p>
+  <p>A wrapper only: (1) installs the CLI, (2) execs <code>athena scan</code> (the gate), (3) optionally <code>athena monitor</code> (record; does not fail on findings), (4) always publishes SARIF/JSON (and JUnit on Jenkins). The gate is the CLI scan exit code. Do not put regex or API calls in YAML.</p>
   <p><strong>Shared process:</strong> prove the command on a laptop → first pipeline = local gate (no secrets, no <code>--repo</code>) → then platform secrets and full modes when the agent can reach the engine. Checkpoints are in <code>docs/CI.md</code>.</p>
 
   <h3 id="github">GitHub Actions</h3>
-  <p>Composite action: repo-root <code>action.yml</code>. Caller (local gate): <code>.github/workflows/athena.yml</code> with <code>uses: ./</code>, <code>modes: pipeline</code>, no secrets. Pin third-party actions to a commit SHA. Code Scanning upload uses <code>github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474</code>.</p>
+  <p>Composite action: repo-root <code>action.yml</code>. Caller (local gate): <code>.github/workflows/athena.yml</code> with <code>uses: ./</code>, <code>modes: pipeline</code>, no secrets. Pin third-party actions to a commit SHA (<code>actions/checkout@11bd7190…</code> = v4.2.2). Code Scanning upload uses <code>github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474</code>.</p>
   <p>Engine job: caller sets <code>env.ATHENA_API_URL</code> / <code>ATHENA_API_KEY</code> from <code>secrets</code>, and passes <code>repo</code> / <code>branch</code>. If this CLI is a separate repo, pin <code>uses: ORG/athena-sast-cli@COMMIT_SHA</code> — never <code>@main</code>.</p>
 
   <h3 id="jenkins">Jenkins</h3>

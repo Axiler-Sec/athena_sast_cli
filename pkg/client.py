@@ -17,16 +17,17 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from pkg.constants import DEFAULT_HTTP_TIMEOUT, ENGINE_ENDPOINTS
+from pkg.redact import redact, redact_bytes
 
 TERMINAL_STATUSES = {"completed", "complete", "done", "failed", "error", "success"}
 PENDING_STATUSES = {"queued", "pending", "running", "in_progress", "accepted"}
 
 
 class EngineError(Exception):
-    """Mapped to CLI exit 2."""
+    """Mapped to CLI exit 2. str() never includes secret values."""
 
     def __init__(self, message: str):
-        super().__init__(message)
+        super().__init__(redact(message))
 
 
 def _api_url() -> str:
@@ -70,7 +71,7 @@ def save_raw(raw_dir: str, name: str, body: bytes) -> str:
     path = Path(raw_dir)
     path.mkdir(parents=True, exist_ok=True)
     dest = path / f"{name}-{uuid.uuid4().hex[:8]}.json"
-    dest.write_bytes(body)
+    dest.write_bytes(redact_bytes(body))
     return str(dest)
 
 
@@ -82,7 +83,7 @@ def _headers(content_type: Optional[str] = "application/json") -> Dict[str, str]
 
 
 def _raise_http(status: int, body: bytes) -> None:
-    text = body.decode("utf-8", errors="replace")
+    text = redact(body.decode("utf-8", errors="replace"))
     if status in (401, 403):
         raise EngineError("auth failed")
     detail = text
@@ -92,7 +93,7 @@ def _raise_http(status: int, body: bytes) -> None:
             detail = str(parsed["detail"])
     except json.JSONDecodeError:
         pass
-    raise EngineError(f"engine HTTP {status}: {detail[:500]}")
+    raise EngineError(f"engine HTTP {status}: {redact(detail)[:500]}")
 
 
 def _request(
@@ -357,3 +358,62 @@ def create_pr(repo: str, branch: str, finding: Dict[str, Any], *, raw_dir: str) 
 
 def compliance(mapper_body: Dict[str, Any], *, raw_dir: str) -> Tuple[Any, str]:
     return post_json(ENGINE_ENDPOINTS["compliance"], mapper_body, raw_dir=raw_dir, raw_name="compliance")
+
+
+def health(*, raw_dir: str) -> Tuple[Any, str]:
+    url = _api_url() + "/health"
+    headers = {"Accept": "application/json"}
+    try:
+        headers["X-API-Key"] = _api_key()
+    except EngineError:
+        pass
+    status, raw = _request("GET", url, headers=headers)
+    raw_path = save_raw(raw_dir, "health", raw)
+    if status >= 400:
+        _raise_http(status, raw)
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise EngineError(f"engine returned non-JSON (saved {raw_path})") from exc
+    return parsed, raw_path
+
+
+def get_json(path: str, *, raw_dir: str, raw_name: str) -> Tuple[Any, str]:
+    url = _api_url() + path
+    status, raw = _request("GET", url, headers=_headers(None))
+    raw_path = save_raw(raw_dir, raw_name, raw)
+    if status >= 400:
+        _raise_http(status, raw)
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise EngineError(f"engine returned non-JSON (saved {raw_path})") from exc
+    return parsed, raw_path
+
+
+def monitor_snapshot(payload: Dict[str, Any], *, raw_dir: str) -> Tuple[Any, str]:
+    return post_json(
+        ENGINE_ENDPOINTS["monitor_snapshot"],
+        payload,
+        raw_dir=raw_dir,
+        raw_name="monitor-snapshot",
+    )
+
+
+def list_monitor_snapshots(*, raw_dir: str) -> Tuple[Any, str]:
+    return get_json(
+        ENGINE_ENDPOINTS["monitor_snapshots"],
+        raw_dir=raw_dir,
+        raw_name="monitor-snapshots",
+    )
+
+
+def get_monitor_snapshot(snapshot_id: str, *, raw_dir: str) -> Tuple[Any, str]:
+    sid = (snapshot_id or "").strip()
+    if not sid:
+        raise EngineError("snapshot id is required")
+    return get_json(
+        ENGINE_ENDPOINTS["monitor_snapshots"] + "/" + sid,
+        raw_dir=raw_dir,
+        raw_name="monitor-snapshot-get",
+    )

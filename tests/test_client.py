@@ -258,5 +258,37 @@ class TestComplianceHonesty(unittest.TestCase):
             self.assertEqual(code, 0)
 
 
+class TestMonitorSnapshot(unittest.TestCase):
+    def test_posts_monitor_path(self):
+        captured = {}
+
+        def fake_request(method, url, data=None, headers=None, timeout=None):
+            captured["url"] = url
+            return 200, b'{"snapshot":"local_only","persisted":false}'
+
+        with _env(), tempfile.TemporaryDirectory() as td, patch.object(
+            client, "_request", fake_request
+        ):
+            payload, _ = client.monitor_snapshot({"findings": []}, raw_dir=td)
+            self.assertIn("/scan/monitor-snapshot", captured["url"])
+            self.assertEqual(payload["snapshot"], "local_only")
+
+    def test_lists_monitor_snapshots(self):
+        captured = {}
+
+        def fake_request(method, url, data=None, headers=None, timeout=None):
+            captured["method"] = method
+            captured["url"] = url
+            return 200, b'{"snapshot_store":"local_only","snapshots":[]}'
+
+        with _env(), tempfile.TemporaryDirectory() as td, patch.object(
+            client, "_request", fake_request
+        ):
+            payload, _ = client.list_monitor_snapshots(raw_dir=td)
+            self.assertEqual(captured["method"], "GET")
+            self.assertIn("/scan/monitor-snapshots", captured["url"])
+            self.assertEqual(payload["snapshot_store"], "local_only")
+
+
 if __name__ == "__main__":
     unittest.main()

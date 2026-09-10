@@ -10,5 +10,6 @@ jobs:
       API_TOKEN: "0123456789abcdef"
     steps:
       - uses: actions/checkout@latest
+      - uses: tj-actions/changed-files@v1
       - name: install
         run: pip install requests

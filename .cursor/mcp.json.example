@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "athena": {
+      "command": "python3",
+      "args": ["athena.py", "mcp"],
+      "cwd": "/absolute/path/to/athena-sast-cli",
+      "env": {
+        "ATHENA_API_URL": "http://127.0.0.1:8012",
+        "ATHENA_API_KEY": ""
+      }
+    }
+  }
+}

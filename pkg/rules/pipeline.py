@@ -22,8 +22,13 @@ RULES = [
         "severity": "high",
         "owasp_id": "CICD-SEC-8",
         "cwe": "CWE-829",
-        "patterns": [r"uses:\s*\S+@(main|master|latest|HEAD)\b"],
-        "message": "GitHub Action pinned to a moving tag. Pin uses: to a full commit SHA (CICD-SEC-8).",
+        "patterns": [
+            r"uses:\s*\S+@(main|master|latest|HEAD|v\d[\w.\-]*)\b"
+        ],
+        "message": (
+            "GitHub Action pinned to a mutable tag (@v1/@main/@latest). "
+            "Pin uses: to a full 40-character commit SHA (CICD-SEC-8)."
+        ),
         "tags": ["security", "pipeline", "supply-chain", "CICD-SEC-8"],
         "file_types": [".yml", ".yaml"],
         "pipeline_only": True,
