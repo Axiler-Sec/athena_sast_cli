@@ -1,6 +1,6 @@
 """Athena CLI constants. Exit codes 0/1/2 are a frozen public contract."""
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 TOOL_NAME = "athena"
 OWASP_STANDARD = "CI/CD Security Cheat Sheet 2024"
 OWASP_CHEATSHEET_URI = (
