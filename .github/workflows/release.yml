@@ -4,46 +4,13 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      yank_1_1_0:
-        description: Yank PyPI 1.1.0
-        type: boolean
-        default: false
 
 permissions:
   contents: read
 
 jobs:
-  yank-1-1-0:
-    name: Yank PyPI 1.1.0
-    if: github.event_name == 'workflow_dispatch' && inputs.yank_1_1_0
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Yank 1.1.0
-        run: |
-          set +x
-          set -e
-          resp=$(curl -sf -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=pypi")
-          oidc=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$resp")
-          resp=$(curl -sf -X POST https://pypi.org/_/oidc/mint-token \
-            -H "Content-Type: application/json" \
-            -d "{\"token\": \"${oidc}\"}")
-          token=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])' <<<"$resp")
-          curl -sf -X PATCH "https://pypi.org/api/projects/athena-sast/1.1.0" \
-            -H "Content-Type: application/json" \
-            -u "__token__:${token}" \
-            -d '{"yanked": true, "yanked_reason": "Superseded by 1.1.1."}'
-          echo yanked
-
   pypi:
     name: PyPI (Trusted Publishing)
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -73,7 +40,6 @@ jobs:
 
   binaries:
     name: Binary (${{ matrix.target }})
-    if: github.event_name == 'push'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -116,7 +82,6 @@ jobs:
 
   docker:
     name: GHCR image
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -145,7 +110,6 @@ jobs:
 
   github-release:
     name: GitHub Release + checksums
-    if: github.event_name == 'push'
     needs: [binaries]
     runs-on: ubuntu-latest
     permissions:
