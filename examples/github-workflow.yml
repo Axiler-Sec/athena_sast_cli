@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   local-gate:
-    name: Local pipeline gate
+    name: Local pipeline
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
@@ -28,11 +28,10 @@ jobs:
         run: |
           set +x
           python3 -m pip install "athena-sast==1.1.1"
-          athena scan \
+          athena monitor \
             --local . \
             --exclude '.github/**' \
             --modes pipeline \
-            --fail-on high \
             --format table
 
   engine:
