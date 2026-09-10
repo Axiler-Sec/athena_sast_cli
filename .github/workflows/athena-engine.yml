@@ -49,14 +49,18 @@ jobs:
           repo: ${{ github.server_url }}/${{ github.repository }}
           branch: ${{ github.head_ref || github.ref_name }}
           modes: code-review,secrets,iac,sca,pipeline
+      # CICD-SEC-4: github.head_ref is untrusted. Pass via env, never ${{ }} in run:.
       - name: Athena monitor (record; does not gate on findings)
         if: always()
+        env:
+          ATHENA_SCAN_REPO: ${{ github.server_url }}/${{ github.repository }}
+          ATHENA_SCAN_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           set +x
           python3 -m pip install --quiet "${GITHUB_WORKSPACE}"
           athena monitor \
             --target . \
-            --repo "${{ github.server_url }}/${{ github.repository }}" \
-            --branch "${{ github.head_ref || github.ref_name }}" \
+            --repo "${ATHENA_SCAN_REPO}" \
+            --branch "${ATHENA_SCAN_BRANCH}" \
             --modes code-review,secrets,iac,sca,pipeline \
             --quiet

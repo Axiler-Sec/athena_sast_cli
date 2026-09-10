@@ -3,6 +3,10 @@
 Auth is env-only (X-API-Key). Raw bodies are written to disk before parse.
 Today the engine POSTs are synchronous (200 + JSON). wait_for_scan handles
 a future 202/queued body without calling a status URL that does not exist.
+
+Engine URLs are https (or loopback http). Poll URLs must be the same origin
+as ATHENA_API_URL. http.client is used so file:// and urllib redirects cannot
+carry the API key off-origin.
 """
 
 from __future__ import annotations
@@ -11,13 +15,15 @@ import json
 import os
 import time
 import uuid
+from http.client import HTTPConnection, HTTPSConnection
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.parse import urljoin, urlparse
 
 from pkg.constants import DEFAULT_HTTP_TIMEOUT, ENGINE_ENDPOINTS
 from pkg.redact import redact, redact_bytes
+
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 
 TERMINAL_STATUSES = {"completed", "complete", "done", "failed", "error", "success"}
 PENDING_STATUSES = {"queued", "pending", "running", "in_progress", "accepted"}
@@ -30,11 +36,41 @@ class EngineError(Exception):
         super().__init__(redact(message))
 
 
+def _default_port(scheme: str) -> int:
+    return 443 if scheme == "https" else 80
+
+
+def _origin(parsed) -> Tuple[str, str, int]:
+    host = (parsed.hostname or "").lower()
+    port = parsed.port or _default_port(parsed.scheme)
+    return parsed.scheme, host, port
+
+
+def _require_engine_url(url: str, *, same_origin: bool = False) -> str:
+    """Allow https, or http to loopback. Optionally pin to ATHENA_API_URL."""
+    url = (url or "").strip()
+    if not url or any(c in url for c in ("\r", "\n", "\x00")):
+        raise EngineError("engine URL is invalid")
+    parsed = urlparse(url)
+    if parsed.scheme not in {"https", "http"}:
+        raise EngineError("engine URL must be https:// (or loopback http)")
+    if parsed.username or parsed.password:
+        raise EngineError("engine URL must not contain credentials")
+    host = (parsed.hostname or "").lower()
+    if not host:
+        raise EngineError("engine URL is missing a host")
+    if parsed.scheme == "http" and host not in _LOOPBACK_HOSTS:
+        raise EngineError("Refuse public HTTP engine URL")
+    if same_origin and _origin(parsed) != _origin(urlparse(_api_url())):
+        raise EngineError("engine URL is not the configured engine")
+    return url
+
+
 def _api_url() -> str:
     url = (os.environ.get("ATHENA_API_URL") or "").strip().rstrip("/")
     if not url:
         raise EngineError("ATHENA_API_URL is not set")
-    return url
+    return _require_engine_url(url)
 
 
 def _api_key() -> str:
@@ -104,15 +140,26 @@ def _request(
     headers: Optional[Dict[str, str]] = None,
     timeout: Optional[int] = None,
 ) -> Tuple[int, bytes]:
-    req = Request(url, data=data, method=method, headers=headers or {})
+    url = _require_engine_url(url, same_origin=True)
+    parsed = urlparse(url)
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+    host = parsed.hostname or ""
+    timeout_s = timeout if timeout is not None else timeout_seconds()
+    if parsed.scheme == "https":
+        conn: HTTPConnection = HTTPSConnection(host, parsed.port or 443, timeout=timeout_s)
+    else:
+        conn = HTTPConnection(host, parsed.port or 80, timeout=timeout_s)
     try:
-        with urlopen(req, timeout=timeout if timeout is not None else timeout_seconds()) as resp:
-            return resp.getcode(), resp.read()
-    except HTTPError as exc:
-        body = exc.read() if exc.fp else b""
-        return exc.code, body
-    except URLError as exc:
-        raise EngineError(f"engine unreachable: {exc.reason}") from exc
+        conn.request(method, path, body=data, headers=headers or {})
+        resp = conn.getresponse()
+        return resp.status, resp.read()
+    except OSError as exc:
+        reason = getattr(exc, "strerror", None) or str(exc)
+        raise EngineError(f"engine unreachable: {reason}") from exc
+    finally:
+        conn.close()
 
 
 def post_bytes(
@@ -182,7 +229,10 @@ def wait_for_scan(payload: Any, *, raw_dir: str, raw_name: str, polls: int = 0) 
     poll_url = payload.get("status_url") or payload.get("poll_url")
     if status in PENDING_STATUSES and poll_url and polls < 120:
         time.sleep(2)
-        status_code, raw = _request("GET", str(poll_url), headers=_headers(None))
+        target = str(poll_url).strip()
+        if not urlparse(target).scheme:
+            target = urljoin(_api_url() + "/", target)
+        status_code, raw = _request("GET", target, headers=_headers(None))
         save_raw(raw_dir, f"{raw_name}-poll", raw)
         if status_code >= 400:
             _raise_http(status_code, raw)

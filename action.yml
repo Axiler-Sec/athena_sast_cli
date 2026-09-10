@@ -52,6 +52,9 @@ runs:
         python3 -m pip install --upgrade pip
         python3 -m pip install "${GITHUB_ACTION_PATH}"
 
+    # CICD-SEC-4: never splice ${{ }} into bash. github.head_ref / inputs can
+    # carry $(...) and still expand inside double quotes. env: is assignment,
+    # not eval — then quote the variables.
     - name: Run Athena scan
       id: scan
       shell: bash
@@ -61,23 +64,30 @@ runs:
         ATHENA_API_URL: ${{ env.ATHENA_API_URL }}
         ATHENA_API_KEY: ${{ env.ATHENA_API_KEY }}
         ATHENA_REPO_TOKEN: ${{ env.ATHENA_REPO_TOKEN }}
+        ATHENA_SCAN_TARGET: ${{ inputs.target }}
+        ATHENA_SCAN_REPO: ${{ inputs.repo }}
+        ATHENA_SCAN_BRANCH: ${{ inputs.branch }}
+        ATHENA_SCAN_MODES: ${{ inputs.modes }}
+        ATHENA_SCAN_FAIL_ON: ${{ inputs.fail-on }}
+        ATHENA_SARIF_OUTPUT: ${{ inputs.sarif-output }}
+        ATHENA_JSON_OUTPUT: ${{ inputs.json-output }}
       run: |
         set +x
         set +e
         EXTRA=()
-        if [ -n "${{ inputs.repo }}" ]; then
-          EXTRA+=(--repo "${{ inputs.repo }}")
+        if [ -n "${ATHENA_SCAN_REPO}" ]; then
+          EXTRA+=(--repo "${ATHENA_SCAN_REPO}")
         fi
-        if [ -n "${{ inputs.branch }}" ]; then
-          EXTRA+=(--branch "${{ inputs.branch }}")
+        if [ -n "${ATHENA_SCAN_BRANCH}" ]; then
+          EXTRA+=(--branch "${ATHENA_SCAN_BRANCH}")
         fi
         athena scan \
-          --target "${{ inputs.target }}" \
-          --modes "${{ inputs.modes }}" \
+          --target "${ATHENA_SCAN_TARGET}" \
+          --modes "${ATHENA_SCAN_MODES}" \
           --format sarif \
-          --output "${{ inputs.sarif-output }}" \
-          --json-output "${{ inputs.json-output }}" \
-          --fail-on "${{ inputs.fail-on }}" \
+          --output "${ATHENA_SARIF_OUTPUT}" \
+          --json-output "${ATHENA_JSON_OUTPUT}" \
+          --fail-on "${ATHENA_SCAN_FAIL_ON}" \
           --quiet \
           "${EXTRA[@]}"
         SCAN_EXIT=$?

@@ -42,15 +42,22 @@ runs:
         ATHENA_API_URL: ${{ env.ATHENA_API_URL }}
         ATHENA_API_KEY: ${{ env.ATHENA_API_KEY }}
         ATHENA_REPO_TOKEN: ${{ env.ATHENA_REPO_TOKEN }}
+        ATHENA_SCAN_TARGET: ${{ inputs.target }}
+        ATHENA_SCAN_REPO: ${{ inputs.repo }}
+        ATHENA_SCAN_BRANCH: ${{ inputs.branch }}
+        ATHENA_SCAN_MODES: ${{ inputs.modes }}
+        ATHENA_SCAN_FAIL_ON: ${{ inputs.fail-on }}
+        ATHENA_SARIF_OUTPUT: ${{ inputs.sarif-output }}
+        ATHENA_JSON_OUTPUT: ${{ inputs.json-output }}
       run: |
         set +x
         EXTRA=()
-        if [ -n "${{ inputs.repo }}" ]; then EXTRA+=(--repo "${{ inputs.repo }}"); fi
-        if [ -n "${{ inputs.branch }}" ]; then EXTRA+=(--branch "${{ inputs.branch }}"); fi
-        athena scan --target "${{ inputs.target }}" --modes "${{ inputs.modes }}" \
-          --format sarif --output "${{ inputs.sarif-output }}" \
-          --json-output "${{ inputs.json-output }}" \
-          --fail-on "${{ inputs.fail-on }}" --quiet "${EXTRA[@]}"
+        if [ -n "${ATHENA_SCAN_REPO}" ]; then EXTRA+=(--repo "${ATHENA_SCAN_REPO}"); fi
+        if [ -n "${ATHENA_SCAN_BRANCH}" ]; then EXTRA+=(--branch "${ATHENA_SCAN_BRANCH}"); fi
+        athena scan --target "${ATHENA_SCAN_TARGET}" --modes "${ATHENA_SCAN_MODES}" \
+          --format sarif --output "${ATHENA_SARIF_OUTPUT}" \
+          --json-output "${ATHENA_JSON_OUTPUT}" \
+          --fail-on "${ATHENA_SCAN_FAIL_ON}" --quiet "${EXTRA[@]}"
     - name: Upload SARIF
       if: always()
       uses: github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474 # v3.28.18

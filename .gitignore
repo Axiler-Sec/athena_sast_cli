@@ -15,7 +15,10 @@ htmlcov/
 .env
 .env.*
 !.env.example
-.cursor/mcp.json
 *.pem
 *.p12
 *.docx
+.cursor/
+.idea/
+.vscode/
+.DS_Store

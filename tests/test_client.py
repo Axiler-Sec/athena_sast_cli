@@ -139,6 +139,29 @@ class TestTimeoutAndAuth(unittest.TestCase):
             with self.assertRaisesRegex(EngineError, "ATHENA_API_KEY"):
                 client._api_key()
 
+    def test_api_url_rejects_file_scheme(self):
+        with patch.dict(os.environ, {"ATHENA_API_URL": "file:///etc/passwd"}, clear=False):
+            with self.assertRaisesRegex(EngineError, "https"):
+                client._api_url()
+
+    def test_api_url_rejects_cleartext(self):
+        with patch.dict(os.environ, {"ATHENA_API_URL": "http://engine.example.test"}, clear=False):
+            with self.assertRaisesRegex(EngineError, "HTTP"):
+                client._api_url()
+
+    def test_api_url_allows_loopback_http(self):
+        with patch.dict(os.environ, {"ATHENA_API_URL": "http://127.0.0.1:8012"}, clear=False):
+            self.assertEqual(client._api_url(), "http://127.0.0.1:8012")
+
+    def test_poll_url_must_match_engine(self):
+        with _env(), tempfile.TemporaryDirectory() as td, patch("pkg.client.time.sleep"):
+            with self.assertRaisesRegex(EngineError, "configured engine"):
+                client.wait_for_scan(
+                    {"status": "queued", "poll_url": "https://evil.example/steal"},
+                    raw_dir=td,
+                    raw_name="poll",
+                )
+
 
 class TestHeadersAndRaw(unittest.TestCase):
     def test_x_api_key_and_raw_saved(self):

@@ -115,7 +115,7 @@ python3 -m unittest discover -s tests -v
 
 ## Cursor MCP (this machine only)
 
-Copy [`.cursor/mcp.json.example`](.cursor/mcp.json.example) into a local MCP config. `athena mcp` is **stdio** — not a network service. Tool text is redacted.
+Copy [`examples/mcp.json.example`](examples/mcp.json.example) into a local MCP config. `athena mcp` is **stdio** — not a network service. Tool text is redacted.
 
 ## Product documentation
 
