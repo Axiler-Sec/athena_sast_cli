@@ -1,6 +1,9 @@
 name: 'Athena SAST'
 description: 'OWASP CI/CD-aligned SAST via the Athena CLI (engine APIs + local pipeline gate)'
 author: Athena
+branding:
+  icon: shield
+  color: blue
 
 # CICD-SEC-5: least privilege. Callers may raise security-events for SARIF upload.
 permissions:
@@ -96,6 +99,7 @@ runs:
     # CICD-SEC-10: always upload SARIF. CICD-SEC-8: pin to commit SHA, not @v3.
     - name: Upload SARIF (GitHub Code Scanning)
       if: always()
+      continue-on-error: true
       uses: github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474 # v3.28.18
       with:
         sarif_file: ${{ inputs.sarif-output }}

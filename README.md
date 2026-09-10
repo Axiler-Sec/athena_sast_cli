@@ -41,16 +41,17 @@ docker run --rm \
   scan --repo https://github.com/ORG/APP.git --branch main --fail-on high
 ```
 
-### GitHub Action (any app repo)
+### GitHub Action
 
-Pin a **40-character commit SHA**. Do not use `@main`. Composite actions cannot read `secrets.*`; put them on the job `env:`.
+This repo is the Action. Customers copy YAML from [`examples/github-workflow.yml`](examples/github-workflow.yml) (works via [PyPI](https://pypi.org/project/athena-sast/1.1.1/) from any repo).
+
+**Marketplace / `uses:` form** (repo must be **public**; pin a tag or a 40-character SHA, not `@main`):
 
 ```yaml
 name: Athena SAST
 on:
   pull_request:
   push:
-    branches: [main]
 permissions:
   contents: read
   security-events: write
@@ -62,16 +63,20 @@ jobs:
       ATHENA_API_KEY: ${{ secrets.ATHENA_API_KEY }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-      - uses: Axiler-Sec/athena_sast_cli@<40-char-sha>
+        with:
+          persist-credentials: false
+      - uses: Axiler-Sec/athena_sast_cli@v1.1.1
         with:
           repo: https://github.com/${{ github.repository }}.git
           branch: ${{ github.ref_name }}
           fail-on: high
 ```
 
-Replace the Action SHA with a real 40-character SHA from this repository (example shape only above). Use `pull_request`, never `pull_request_target` with a checkout of the PR head. See [SECURITY.md](SECURITY.md).
+Composite actions cannot read `secrets.*`; put them on the job `env:`. Use `pull_request`, never the privileged fork-PR event with a checkout of the PR head. See [SECURITY.md](SECURITY.md).
 
 Local gate only (no engine secrets): omit `repo` / unset `ATHENA_API_KEY` and use `modes: pipeline`. Do not put `localhost` in a GitHub secret.
+
+GitHub Marketplace listing requires this repository to be **public**, then a release with **Publish this Action to the GitHub Marketplace** checked. Docs: [Publishing actions in GitHub Marketplace](https://docs.github.com/en/actions/how-tos/create-and-publish-actions/publish-in-github-marketplace).
 
 ## Two modes
 

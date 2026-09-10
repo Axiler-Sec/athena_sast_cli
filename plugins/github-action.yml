@@ -5,6 +5,10 @@
 # checking out fork code.
 name: 'Athena SAST'
 description: 'OWASP CI/CD-aligned SAST via the Athena CLI'
+author: Athena
+branding:
+  icon: shield
+  color: blue
 permissions:
   contents: read
   security-events: write
