@@ -10,7 +10,6 @@ permissions:
 # CICD-SEC-4 / pwn request: do NOT run this action from pull_request_target
 # while checking out the PR head. Fork PRs would inherit this repo's
 # ATHENA_API_KEY / ATHENA_REPO_TOKEN. Use pull_request (or push) only.
-# See docs/CI-CHECKS.md.
 
 inputs:
   target:

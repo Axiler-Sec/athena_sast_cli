@@ -16,7 +16,7 @@ keywords = ["sast", "cicd", "owasp", "sarif"]
 Homepage = "https://github.com/Axiler-Dev/sast-cli-scanner"
 Source = "https://github.com/Axiler-Dev/sast-cli-scanner"
 Issues = "https://github.com/Axiler-Dev/sast-cli-scanner/issues"
-Documentation = "https://github.com/Axiler-Dev/sast-cli-scanner/blob/main/docs/CI.md"
+Documentation = "https://github.com/Axiler-Dev/sast-cli-scanner#readme"
 
 [project.scripts]
 athena = "pkg.cli:main"

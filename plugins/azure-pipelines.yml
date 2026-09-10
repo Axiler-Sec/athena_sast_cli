@@ -1,7 +1,7 @@
 # Copy of the repo-root azure-pipelines.yml for plugin catalogs. Keep in sync.
 # Checkpoint A3: local OWASP pipeline gate only.
 # Microsoft-hosted agents cannot reach http://127.0.0.1:8012.
-# Engine-from-Azure is Checkpoint A4 in docs/CI.md.
+# Engine-from-Azure: do not add --repo until ATHENA_API_URL is a real https URL.
 # Gate is the CLI exit code (0/1/2). Do not swallow exit 1 with continueOnError.
 # Any branch (A3 must actually run on first push). Restrict later if you want.
 trigger:

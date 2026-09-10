@@ -1,6 +1,6 @@
 # Checkpoint G3: local OWASP pipeline gate only.
 # No secrets, no --repo. GitHub-hosted runners cannot reach localhost:8012.
-# Engine-from-GitHub is Checkpoint G4 in docs/CI.md — do not add it here yet.
+# Engine-from-GitHub is a separate workflow (athena-engine.yml) — do not add it here yet.
 #
 # CICD-SEC-4: pull_request, never pull_request_target (pwn request).
 # CICD-SEC-8: pin third-party actions to a 40-character commit SHA, not @v4/@main.

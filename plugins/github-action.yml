@@ -2,7 +2,7 @@
 # Plugins contain zero scan logic — they install athena and exec it.
 #
 # CICD-SEC-4 / pwn request: never call this from pull_request_target while
-# checking out fork code. See docs/CI-CHECKS.md.
+# checking out fork code.
 name: 'Athena SAST'
 description: 'OWASP CI/CD-aligned SAST via the Athena CLI'
 permissions:

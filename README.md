@@ -71,7 +71,7 @@ jobs:
 
 Replace the Action SHA with a real 40-character SHA from this repository (example shape only above). Use `pull_request`, never `pull_request_target` with a checkout of the PR head. See [SECURITY.md](SECURITY.md).
 
-Local gate only (no engine secrets): omit `repo` / unset `ATHENA_API_KEY` and use `modes: pipeline`. Details: [docs/CI.md](docs/CI.md) (G3 vs G4). Do not put `localhost` in a GitHub secret.
+Local gate only (no engine secrets): omit `repo` / unset `ATHENA_API_KEY` and use `modes: pipeline`. Do not put `localhost` in a GitHub secret.
 
 ## Two modes
 
@@ -82,7 +82,7 @@ athena scan tests/targets/bad_pipeline.yml
 athena owasp
 ```
 
-This regex gate scans pipeline YAML, IaC, and source for [OWASP CI/CD Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/CI_CD_Security_Cheat_Sheet.html) risks (CICD-SEC-1 through CICD-SEC-10). It is **not** as deep as the engine's OpenGrep / Trivy / KICS / Syft analysis. Findings are tagged `source: local_owasp`. Capability detail: [docs/CI-CHECKS.md](docs/CI-CHECKS.md).
+This regex gate scans pipeline YAML, IaC, and source for [OWASP CI/CD Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/CI_CD_Security_Cheat_Sheet.html) risks (CICD-SEC-1 through CICD-SEC-10). It is **not** as deep as the engine's OpenGrep / Trivy / KICS / Syft analysis. Findings are tagged `source: local_owasp`.
 
 **Engine client** (requires env):
 
@@ -119,9 +119,6 @@ Copy [`.cursor/mcp.json.example`](.cursor/mcp.json.example) into a local MCP con
 
 ## Product documentation
 
-- **[docs/athena-sast.html](docs/athena-sast.html)** — operator manual
-- **[docs/CI.md](docs/CI.md)** — numbered checkpoints (laptop → engine → G/J/A wrappers)
-- **[docs/CI-CHECKS.md](docs/CI-CHECKS.md)** — what “CI checks” means
 - **[SECURITY.md](SECURITY.md)** — reporting and secret handling
 
 ## License

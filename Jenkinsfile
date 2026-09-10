@@ -1,7 +1,7 @@
 // Checkpoint J3: local OWASP pipeline gate only.
 // Do not call credentials() here — missing IDs fail the job before the scan.
 // Microsoft/cloud agents and this laptop are different computers (same as GitHub G2).
-// Engine-from-Jenkins is Checkpoint J4 in docs/CI.md.
+// Engine-from-Jenkins: add credentials only when the agent can reach the engine over HTTPS.
 pipeline {
     agent any
     options {
