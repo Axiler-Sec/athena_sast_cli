@@ -5,7 +5,7 @@
 Do **not** open a public issue for leaked tokens, `.env` files, or a working exploit.
 
 Email the maintainers via GitHub Security Advisories on
-[Axiler-Dev/sast-cli-scanner](https://github.com/Axiler-Dev/sast-cli-scanner/security/advisories/new)
+[Axiler-Sec/athena_sast_cli](https://github.com/Axiler-Sec/athena_sast_cli/security/advisories/new)
 (or the org security contact). Include the affected version/tag and a
 reproducer that does **not** paste live `ATHENA_API_KEY` values.
 
@@ -29,5 +29,5 @@ Never pass keys as CLI flags. Never `set -x` in workflows. The CLI redacts
 
 ## GitHub Action
 
-Pin `uses: Axiler-Dev/sast-cli-scanner@<40-character-sha>`. Do not use `@main`.
+Pin `uses: Axiler-Sec/athena_sast_cli@<40-character-sha>`. Do not use `@main`.
 Use `pull_request`, never `pull_request_target` with a checkout of the PR head.

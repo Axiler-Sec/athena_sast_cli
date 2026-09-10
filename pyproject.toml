@@ -13,10 +13,10 @@ authors = [{ name = "Athena" }]
 keywords = ["sast", "cicd", "owasp", "sarif"]
 
 [project.urls]
-Homepage = "https://github.com/Axiler-Dev/sast-cli-scanner"
-Source = "https://github.com/Axiler-Dev/sast-cli-scanner"
-Issues = "https://github.com/Axiler-Dev/sast-cli-scanner/issues"
-Documentation = "https://github.com/Axiler-Dev/sast-cli-scanner#readme"
+Homepage = "https://github.com/Axiler-Sec/athena_sast_cli"
+Source = "https://github.com/Axiler-Sec/athena_sast_cli"
+Issues = "https://github.com/Axiler-Sec/athena_sast_cli/issues"
+Documentation = "https://github.com/Axiler-Sec/athena_sast_cli#readme"
 
 [project.scripts]
 athena = "pkg.cli:main"

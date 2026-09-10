@@ -19,7 +19,7 @@ athena scan --repo https://github.com/ORG/APP.git --branch main --fail-on high
 
 ### GitHub Release binary
 
-Download `athena-<version>-linux-x64` (or `macos-arm64` / `windows-x64.exe`) and `SHA256SUMS` from [Releases](https://github.com/Axiler-Dev/sast-cli-scanner/releases).
+Download `athena-<version>-linux-x64` (or `macos-arm64` / `windows-x64.exe`) and `SHA256SUMS` from [Releases](https://github.com/Axiler-Sec/athena_sast_cli/releases).
 
 ```bash
 chmod +x athena-*-linux-x64
@@ -37,7 +37,7 @@ docker run --rm \
   -e ATHENA_API_URL \
   -e ATHENA_API_KEY \
   -v "$PWD":/src -w /src \
-  ghcr.io/axiler-dev/athena-sast-cli \
+  ghcr.io/axiler-sec/athena-sast-cli \
   scan --repo https://github.com/ORG/APP.git --branch main --fail-on high
 ```
 
@@ -62,7 +62,7 @@ jobs:
       ATHENA_API_KEY: ${{ secrets.ATHENA_API_KEY }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: Axiler-Dev/sast-cli-scanner@<40-char-sha>
+      - uses: Axiler-Sec/athena_sast_cli@<40-char-sha>
         with:
           repo: https://github.com/${{ github.repository }}.git
           branch: ${{ github.ref_name }}
