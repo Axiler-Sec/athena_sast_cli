@@ -61,7 +61,7 @@ jobs:
       ATHENA_API_URL: ${{ secrets.ATHENA_API_URL }}
       ATHENA_API_KEY: ${{ secrets.ATHENA_API_KEY }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - uses: Axiler-Sec/athena_sast_cli@<40-char-sha>
         with:
           repo: https://github.com/${{ github.repository }}.git
