@@ -1,22 +1,19 @@
 name: 'Athena SAST'
-description: 'OWASP CI/CD-aligned SAST via the Athena CLI (engine APIs + local pipeline gate)'
+description: 'Athena SAST CLI for GitHub Actions'
 author: Athena
 branding:
   icon: shield
   color: blue
 
-# CICD-SEC-5: least privilege. Callers may raise security-events for SARIF upload.
 permissions:
   contents: read
   security-events: write
 
-# CICD-SEC-4 / pwn request: do NOT run this action from pull_request_target
-# while checking out the PR head. Fork PRs would inherit this repo's
-# ATHENA_API_KEY / ATHENA_REPO_TOKEN. Use pull_request (or push) only.
+# Do not run this action from pull_request_target while checking out the PR head.
 
 inputs:
   target:
-    description: 'Local checkout path for the pipeline gate'
+    description: 'Local checkout path'
     default: '.'
   repo:
     description: 'Git repository URL (engine scan). Empty = local gate only.'
@@ -31,7 +28,7 @@ inputs:
     description: 'Comma-separated modes'
     default: 'code-review,secrets,iac,sca,pipeline'
   sarif-output:
-    description: 'SARIF output path (CLI-normalized, not engine SARIF)'
+    description: 'SARIF output path'
     default: 'athena-results.sarif'
   json-output:
     description: 'JSON output path'
@@ -55,15 +52,10 @@ runs:
         python3 -m pip install --upgrade pip
         python3 -m pip install "${GITHUB_ACTION_PATH}"
 
-    # CICD-SEC-4: never splice ${{ }} into bash. github.head_ref / inputs can
-    # carry $(...) and still expand inside double quotes. env: is assignment,
-    # not eval — then quote the variables.
     - name: Run Athena scan
       id: scan
       shell: bash
       env:
-        # CICD-SEC-6: secrets from the caller workflow env, never hardcoded.
-        # QA: never add set -x here — tokens would land in plaintext logs.
         ATHENA_API_URL: ${{ env.ATHENA_API_URL }}
         ATHENA_API_KEY: ${{ env.ATHENA_API_KEY }}
         ATHENA_REPO_TOKEN: ${{ env.ATHENA_REPO_TOKEN }}
@@ -96,11 +88,10 @@ runs:
         SCAN_EXIT=$?
         exit $SCAN_EXIT
 
-    # CICD-SEC-10: always upload SARIF. CICD-SEC-8: pin to commit SHA, not @v3.
-    - name: Upload SARIF (GitHub Code Scanning)
+    - name: Upload SARIF
       if: always()
       continue-on-error: true
-      uses: github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474 # v3.28.18
+      uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
       with:
         sarif_file: ${{ inputs.sarif-output }}
         category: 'athena-sast'

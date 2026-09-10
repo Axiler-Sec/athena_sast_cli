@@ -1,10 +1,5 @@
-# Copy of the root action.yml for plugin catalogs. Keep in sync.
-# Plugins contain zero scan logic — they install athena and exec it.
-#
-# CICD-SEC-4 / pwn request: never call this from pull_request_target while
-# checking out fork code.
 name: 'Athena SAST'
-description: 'OWASP CI/CD-aligned SAST via the Athena CLI'
+description: 'Athena SAST CLI for GitHub Actions'
 author: Athena
 branding:
   icon: shield
@@ -64,7 +59,7 @@ runs:
           --fail-on "${ATHENA_SCAN_FAIL_ON}" --quiet "${EXTRA[@]}"
     - name: Upload SARIF
       if: always()
-      uses: github/codeql-action/upload-sarif@b8ed34e6ff8a3049f4f8c90c055bf2397a014474 # v3.28.18
+      uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
       with:
         sarif_file: ${{ inputs.sarif-output }}
         category: 'athena-sast'

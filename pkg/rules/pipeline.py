@@ -1,4 +1,4 @@
-"""CICD-SEC-1,2,5,6,8,10: pipeline config scanning — Athena differentiator."""
+"""CICD-SEC-1,2,5,6,8,10: pipeline config scanning."""
 
 RULES = [
     {

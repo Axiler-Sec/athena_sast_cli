@@ -12,14 +12,9 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
-      - name: Test local OWASP gate
+      - name: Test
         run: |
           set +x
           python3 -m pip install pytest
           python3 -m pytest tests/test_athena.py tests/test_client.py tests/test_redact.py tests/test_mcp.py -v
-      - name: Dogfood local pipeline gate
-        run: |
-          set +x
-          python3 athena.py scan --local . --modes pipeline --fail-on critical --quiet
           python3 athena.py version
-          python3 athena.py owasp

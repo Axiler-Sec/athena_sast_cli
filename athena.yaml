@@ -1,6 +1,3 @@
-# athena.yaml — travels with the repo. Engine and UI do not read this file.
-# Precedence: CLI flag > environment variable > this file > default
-
 fail_on: high
 format: sarif
 output: athena-results.sarif

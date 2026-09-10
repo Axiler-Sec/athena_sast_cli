@@ -1,8 +1,4 @@
 # Publish PyPI wheel, OS binaries, and GHCR image on version tags.
-# No long-lived PyPI/Docker passwords in the repo (OIDC + GITHUB_TOKEN).
-# Never pass ATHENA_API_KEY as a build-arg.
-#
-# CICD-SEC-8: pin third-party actions to a 40-character commit SHA.
 name: Release
 on:
   push:
